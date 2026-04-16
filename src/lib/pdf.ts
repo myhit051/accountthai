@@ -5,7 +5,7 @@ import { db } from '@/db'
 import { tenants } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 
-export async function generatePdfBuffer(id: string, tenantId: string): Promise<{ pdf: Buffer | string, filename: string, isHtml: boolean } | null> {
+export async function generatePdfBuffer(id: string, tenantId: string): Promise<{ pdf: string, filename: string, isHtml: boolean } | null> {
   const doc = await getDocumentById(id, tenantId)
   if (!doc) return null
 
@@ -26,38 +26,8 @@ export async function generatePdfBuffer(id: string, tenantId: string): Promise<{
   const partnerName = contact?.name || 'noname'
   const filename = getPdfFilename(tenant?.name || 'company', doc.docNumber, partnerName)
   
-  try {
-    let browser
-    try {
-      const chromium = await import('@sparticuz/chromium-min')
-      const puppeteer = await import('puppeteer-core')
-      browser = await puppeteer.default.launch({
-        args: chromium.default.args,
-        defaultViewport: chromium.default.defaultViewport,
-        executablePath: await chromium.default.executablePath(
-          process.env.CHROMIUM_PATH || undefined
-        ),
-        headless: true,
-      })
-    } catch {
-      // Fallback
-      return { pdf: html, filename: filename.replace('.pdf', '.html'), isHtml: true }
-    }
-
-    const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0' })
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
-    })
-    await browser.close()
-    
-    return { pdf: Buffer.from(pdf), filename, isHtml: false }
-  } catch (error) {
-    console.error('PDF generation error:', error)
-    return null
-  }
+  // Return raw HTML and let the client-side (html2pdf) or iframe handle the rendering
+  return { pdf: html, filename: filename.replace('.pdf', '.html'), isHtml: true }
 }
 
 export function generatePdfHtml({ doc, lineItems, contact, tenant, docTypeLabel }: any) {

@@ -18,6 +18,33 @@ export default function PdfPreviewModal({ docId, docNumber }: { docId: string, d
     )
   }
 
+  const handleDownload = async () => {
+    try {
+      const html2pdf = (await import('html2pdf.js')).default
+      const iframe = document.getElementById('preview-iframe') as HTMLIFrameElement
+      if (!iframe?.contentDocument) return
+      
+      const opt = {
+        margin: 10,
+        filename: `${docNumber}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }
+      
+      html2pdf().from(iframe.contentDocument.body).set(opt).save()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handlePrint = () => {
+    const iframe = document.getElementById('preview-iframe') as HTMLIFrameElement
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.print()
+    }
+  }
+
   return (
     <>
       <button
@@ -34,16 +61,22 @@ export default function PdfPreviewModal({ docId, docNumber }: { docId: string, d
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <h3 className="font-bold text-lg text-gray-900">ตัวอย่างเอกสาร {docNumber}</h3>
             <div className="flex items-center gap-3">
-              <a
-                href={`/api/documents/${docId}/pdf`}
-                target="_blank"
+              <button
+                onClick={handlePrint}
+                className="btn-secondary btn-sm text-gray-600 border-gray-200 hover:bg-gray-50"
+              >
+                🖨️ พิมพ์
+              </button>
+              <button
+                onClick={handleDownload}
                 className="btn-secondary btn-sm text-blue-600 border-blue-200 hover:bg-blue-50"
               >
-                ดาวน์โหลด / พิมพ์
-              </a>
+                📥 ดาวน์โหลด PDF
+              </button>
               <button 
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="ปิดหน้าต่าง"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
@@ -51,8 +84,9 @@ export default function PdfPreviewModal({ docId, docNumber }: { docId: string, d
           </div>
           <div className="flex-1 bg-gray-100 relative">
             <iframe
-              src={`/api/documents/${docId}/pdf#toolbar=0`}
-              className="absolute inset-0 w-full h-full border-0"
+              id="preview-iframe"
+              src={`/api/documents/${docId}/pdf`}
+              className="absolute inset-0 w-full h-full border-0 bg-white"
               title="PDF Preview"
             />
           </div>

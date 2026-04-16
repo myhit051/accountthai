@@ -7,6 +7,7 @@ import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import { issueDocument, markDocumentPaid, voidDocument, duplicateDocument, convertDocument, deleteDocument } from '@/actions/documents'
 import Link from 'next/link'
 import PdfPreviewModal from '@/components/documents/PdfPreviewModal'
+import DriveUploader from '@/components/documents/DriveUploader'
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'ร่าง', issued: 'ออกแล้ว', paid: 'ชำระแล้ว', void: 'ยกเลิก',
@@ -210,6 +211,7 @@ export default async function DocumentDetailPage({ params }: Props) {
           )}
         </div>
       </div>
+      {doc.driveStatus === 'pending' && <DriveUploader docId={doc.id} />}
     </div>
   )
 }

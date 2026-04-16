@@ -109,23 +109,8 @@ export async function issueDocument(id: string) {
   const now = Math.floor(Date.now() / 1000)
 
   await db.update(documents)
-    .set({ status: 'issued', updatedAt: now })
+    .set({ status: 'issued', driveStatus: 'pending', updatedAt: now })
     .where(and(eq(documents.id, id), eq(documents.tenantId, tenantId), eq(documents.status, 'draft')))
-
-  const [doc] = await db.select().from(documents).where(and(eq(documents.id, id), eq(documents.tenantId, tenantId))).limit(1)
-  
-  if (doc) {
-    // Non-blocking background PDF generation and Drive upload
-    Promise.resolve().then(async () => {
-      const { generatePdfBuffer } = await import('@/lib/pdf')
-      const { uploadDocumentToDrive } = await import('@/lib/drive')
-      
-      const result = await generatePdfBuffer(id, tenantId)
-      if (result && !result.isHtml) {
-        await uploadDocumentToDrive(tenantId, id, doc.docNumber, doc.docType, result.pdf as Buffer, result.filename)
-      }
-    }).catch(console.error)
-  }
 
   revalidatePath(`/documents/${id}`)
   revalidatePath('/documents')
