@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getContacts } from '@/db/queries/contacts'
 import { createContact, deleteContact } from '@/actions/contacts'
 import Link from 'next/link'
+import DeleteContactButton from '@/components/contacts/DeleteContactButton'
 
 const TYPE_LABELS: Record<string, string> = {
   customer: 'ลูกค้า', vendor: 'ผู้ขาย', both: 'ลูกค้า/ผู้ขาย',
@@ -69,15 +70,10 @@ export default async function ContactsPage() {
                 <td className="text-sm text-gray-500">{contact.phone || '—'}</td>
                 <td className="text-sm text-gray-500">{contact.email || '—'}</td>
                 <td>
-                  <div className="flex gap-2">
-                    <Link href={`/contacts/${contact.id}/edit`} className="text-xs text-gray-400 hover:text-blue-600">แก้ไข</Link>
-                    <form action={deleteContact.bind(null, contact.id)}>
-                      <button type="submit" className="text-xs text-gray-400 hover:text-red-500"
-                        onClick={(e) => { if (!confirm(`ลบ "${contact.name}" ใช่หรือไม่?`)) e.preventDefault() }}>
-                        ลบ
-                      </button>
-                    </form>
-                  </div>
+                    <div className="flex gap-2">
+                      <Link href={`/contacts/${contact.id}/edit`} className="text-xs text-gray-400 hover:text-blue-600">แก้ไข</Link>
+                      <DeleteContactButton id={contact.id} name={contact.name} />
+                    </div>
                 </td>
               </tr>
             ))}
