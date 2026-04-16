@@ -4,14 +4,15 @@ import { generatePdfBuffer } from '@/lib/pdf'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) return new NextResponse('Unauthorized', { status: 401 })
 
   const tenantId = session.user.id
+  const { id } = await params
   
-  const result = await generatePdfBuffer(params.id, tenantId)
+  const result = await generatePdfBuffer(id, tenantId)
   
   if (!result) {
     return new NextResponse('Not found or PDF generation failed', { status: 404 })

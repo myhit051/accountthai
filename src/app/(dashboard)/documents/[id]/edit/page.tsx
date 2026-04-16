@@ -14,13 +14,14 @@ const DOC_TYPE_ICONS: Record<DocType, string> = {
 export default async function EditDocumentPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect('/login')
 
+  const { id } = await params
   const tenantId = session.user.id
-  const doc = await getDocumentById(params.id, tenantId)
+  const doc = await getDocumentById(id, tenantId)
 
   if (!doc) redirect('/documents')
   if (doc.status !== 'draft') {

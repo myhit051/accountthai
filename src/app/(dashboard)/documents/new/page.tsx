@@ -15,13 +15,14 @@ const DOC_TYPES: DocType[] = ['INV', 'EXP', 'WT', 'QT', 'BL', 'RE']
 export default async function NewDocumentPage({
   searchParams,
 }: {
-  searchParams: { type?: string }
+  searchParams: Promise<{ type?: string }>
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect('/login')
 
+  const { type } = await searchParams
   const tenantId = session.user.id
-  const docType = searchParams.type as DocType
+  const docType = type as DocType
 
   // Show type selector if no type selected
   if (!docType || !DOC_TYPES.includes(docType)) {

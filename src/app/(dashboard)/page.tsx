@@ -19,15 +19,16 @@ const THAI_MONTHS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', '
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { month?: string; year?: string }
+  searchParams: Promise<{ month?: string; year?: string }>
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect('/login')
 
+  const resolvedParams = await searchParams
   const tenantId = session.user.id // single-tenant: user IS the tenant
   const now = new Date()
-  const year = parseInt(searchParams.year || String(now.getFullYear()))
-  const month = parseInt(searchParams.month || String(now.getMonth() + 1))
+  const year = parseInt(resolvedParams.year || String(now.getFullYear()))
+  const month = parseInt(resolvedParams.month || String(now.getMonth() + 1))
 
   const [stats, recentDocs] = await Promise.all([
     getDashboardStats(tenantId, year, month),

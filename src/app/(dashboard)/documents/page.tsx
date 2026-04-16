@@ -32,17 +32,18 @@ type SearchParams = {
   sortDir?: 'asc' | 'desc'
 }
 
-export default async function DocumentsPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect('/login')
 
+  const resolvedParams = await searchParams
   const tenantId = session.user.id
-  const page = parseInt(searchParams.page || '1')
-  const docType = (searchParams.type as DocType) || undefined
-  const status = searchParams.status as any
-  const search = searchParams.q
-  const sortBy = searchParams.sortBy || 'date'
-  const sortDir = searchParams.sortDir || 'desc'
+  const page = parseInt(resolvedParams.page || '1')
+  const docType = (resolvedParams.type as DocType) || undefined
+  const status = resolvedParams.status as any
+  const search = resolvedParams.q
+  const sortBy = resolvedParams.sortBy || 'date'
+  const sortDir = resolvedParams.sortDir || 'desc'
 
   const { documents: docs, total, pages } = await getDocuments({
     tenantId,
@@ -90,7 +91,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Se
         {/* Type Tabs */}
         <div className="flex flex-wrap gap-1">
           {DOC_TABS.map(tab => {
-            const isActive = (searchParams.type || '') === tab.key
+            const isActive = (resolvedParams.type || '') === tab.key
             const url = tab.key
               ? `/documents?type=${tab.key}${search ? `&q=${search}` : ''}`
               : `/documents${search ? `?q=${search}` : ''}`

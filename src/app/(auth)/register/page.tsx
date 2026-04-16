@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signUp } from '@/lib/auth-client'
+import { signUp, signIn } from '@/lib/auth-client'
 import Link from 'next/link'
 
 export default function RegisterPage() {

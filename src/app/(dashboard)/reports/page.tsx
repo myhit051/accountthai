@@ -13,15 +13,16 @@ const THAI_MONTHS = ['', 'มกราคม', 'กุมภาพันธ์',
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: { year?: string; month?: string }
+  searchParams: Promise<{ year?: string; month?: string }>
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect('/login')
 
+  const resolvedParams = await searchParams
   const tenantId = session.user.id
   const now = new Date()
-  const year = parseInt(searchParams.year || String(now.getFullYear()))
-  const month = parseInt(searchParams.month || String(now.getMonth() + 1))
+  const year = parseInt(resolvedParams.year || String(now.getFullYear()))
+  const month = parseInt(resolvedParams.month || String(now.getMonth() + 1))
 
   const startTs = Math.floor(new Date(year, month - 1, 1).getTime() / 1000)
   const endTs = Math.floor(new Date(year, month, 0, 23, 59, 59).getTime() / 1000)

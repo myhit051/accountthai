@@ -15,14 +15,15 @@ const STATUS_CLASS: Record<string, string> = {
   draft: 'badge-draft', issued: 'badge-issued', paid: 'badge-paid', void: 'badge-void',
 }
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 export default async function DocumentDetailPage({ params }: Props) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect('/login')
 
+  const { id } = await params
   const tenantId = session.user.id
-  const doc = await getDocumentById(params.id, tenantId)
+  const doc = await getDocumentById(id, tenantId)
   if (!doc) notFound()
 
   const lineItems = JSON.parse(doc.lineItems || '[]')
