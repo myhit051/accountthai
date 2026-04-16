@@ -78,13 +78,13 @@ export async function getNextDocNumber(tenantId: string, docType: DocType): Prom
   const prefix = docType
 
   // Atomic increment using ON CONFLICT DO UPDATE
-  await db.run(
-    `INSERT INTO document_sequences (tenant_id, doc_type, year, month, last_number)
+  await db.execute({
+    sql: `INSERT INTO document_sequences (tenant_id, doc_type, year, month, last_number)
      VALUES (?, ?, ?, ?, 1)
      ON CONFLICT (tenant_id, doc_type, year, month)
      DO UPDATE SET last_number = last_number + 1`,
-    [tenantId, docType, year, month]
-  )
+    args: [tenantId, docType, year, month],
+  })
 
   const seq = await db.execute({
     sql: 'SELECT last_number FROM document_sequences WHERE tenant_id = ? AND doc_type = ? AND year = ? AND month = ?',
