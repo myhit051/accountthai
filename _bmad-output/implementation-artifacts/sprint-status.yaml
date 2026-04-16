@@ -1,0 +1,156 @@
+# generated: 2026-04-15T08:10:00+07:00
+# last_updated: 2026-04-15T08:10:00+07:00
+# project: accountthai
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog:     Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done:        All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done:    Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog:       Story only exists in epic file
+#   - ready-for-dev: Story file created in implementation-artifacts folder
+#   - in-progress:   Developer actively working on implementation
+#   - review:        Ready for code review (via code-review workflow)
+#   - done:          Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done:     Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories should be worked in sequence (1.1 → 1.2 → 1.3 ...) to respect dependencies
+# - Developer creates next story AFTER previous is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs bmad-code-review skill
+# - Start with Epic 1 → Epic 2 → Epic 3 → (Epic 4 & 5 can be parallel) → Epic 6 → Epic 7
+
+generated: "2026-04-15T08:10:00+07:00"
+last_updated: "2026-04-15T08:10:00+07:00"
+project: accountthai
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+
+  # ─────────────────────────────────────────────────────────────────
+  # EPIC 1: Authentication, Project Setup & Company Profile
+  # Goal: Users can register, login, set up company profile, access dashboard
+  # FRs: FR-AUTH-01, FR-AUTH-02, FR-COMP-01, FR-COMP-02, FR-COMP-03
+  # ─────────────────────────────────────────────────────────────────
+  epic-1: backlog
+
+  1-1-project-initialization-and-core-infrastructure: backlog
+  1-2-user-authentication-login-and-session: backlog
+  1-3-company-profile-setup: backlog
+  1-4-company-logo-upload: backlog
+  1-5-document-running-number-configuration: backlog
+
+  epic-1-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # EPIC 2: Contact Management
+  # Goal: Users can create and manage reusable contacts for autocomplete in documents
+  # FRs: FR-CONT-01, FR-CONT-02, FR-CONT-03, FR-CONT-04
+  # Depends on: Epic 1 (auth)
+  # ─────────────────────────────────────────────────────────────────
+  epic-2: backlog
+
+  2-1-contact-crud-create-view-edit-delete: backlog
+  2-2-contact-search-and-autocomplete-in-document-forms: backlog
+  2-3-import-contacts-from-csv: backlog
+
+  epic-2-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # EPIC 3: Document Creation & Management (All 6 Types)
+  # Goal: Users can create, edit, void, track all 6 Thai accounting document types
+  # FRs: FR-DOC-01 through FR-DOC-07
+  # Depends on: Epic 1 (auth, running numbers), Epic 2 (contact autocomplete)
+  # ─────────────────────────────────────────────────────────────────
+  epic-3: backlog
+
+  3-1-document-type-selector-and-core-form-infrastructure: backlog
+  3-2-tax-invoice-inv-form-with-line-items-and-vat: backlog
+  3-3-expense-record-exp-form: backlog
+  3-4-withholding-tax-certificate-wt-form: backlog
+  3-5-quotation-qt-invoice-bl-and-receipt-re-forms: backlog
+  3-6-issue-document-draft-to-issued: backlog
+  3-7-document-lifecycle-paid-void-duplicate: backlog
+  3-8-document-type-conversion-qt-to-bl-to-re: backlog
+  3-9-document-list-and-detail-view: backlog
+
+  epic-3-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # EPIC 4: PDF Export
+  # Goal: Users can generate, preview, and download professional Thai PDFs
+  # FRs: FR-PDF-01, FR-PDF-02, FR-PDF-03, FR-PDF-04, FR-PDF-05, FR-PDF-07
+  # Depends on: Epic 3 (needs documents to generate PDFs from)
+  # ─────────────────────────────────────────────────────────────────
+  epic-4: backlog
+
+  4-1-pdf-generation-infrastructure-puppeteer-setup: backlog
+  4-2-tax-invoice-pdf-template: backlog
+  4-3-all-other-document-type-pdf-templates: backlog
+  4-4-pdf-preview-modal: backlog
+
+  epic-4-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # EPIC 5: Search, History & Dashboard
+  # Goal: Users get dashboard with monthly summaries, search, filter, export reports
+  # FRs: FR-SRCH-01 to FR-SRCH-07, FR-DASH-01 to FR-DASH-05, FR-DASH-07
+  # Depends on: Epic 3 (needs documents to search/summarize)
+  # Can be parallelized with Epic 4
+  # ─────────────────────────────────────────────────────────────────
+  epic-5: backlog
+
+  5-1-dashboard-page-with-monthly-summary: backlog
+  5-2-recent-documents-list-on-dashboard: backlog
+  5-3-document-list-with-search-and-filters: backlog
+  5-4-outstanding-documents-unpaid-invoices: backlog
+  5-5-vat-summary-report: backlog
+  5-6-sort-documents: backlog
+  5-7-export-monthly-summary-to-excel: backlog
+
+  epic-5-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # EPIC 6: Google Drive Integration
+  # Goal: Users can connect Drive and have PDFs auto-backed up in organized folders
+  # FRs: FR-GDRIVE-01 to FR-GDRIVE-05
+  # Depends on: Epic 4 (needs PDFs to upload to Drive)
+  # ─────────────────────────────────────────────────────────────────
+  epic-6: backlog
+
+  6-1-google-drive-oauth-connection: backlog
+  6-2-automatic-pdf-upload-on-document-issue: backlog
+  6-3-manual-drive-re-upload-and-sync: backlog
+
+  epic-6-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # EPIC 7: Data Import
+  # Goal: Users can import document data from Excel/CSV with mapping and validation
+  # FRs: FR-IMP-01, FR-IMP-02, FR-IMP-04, FR-IMP-05, FR-IMP-06
+  # Depends on: Epic 3 (imports create draft documents), Epic 2 (contact matching)
+  # ─────────────────────────────────────────────────────────────────
+  epic-7: backlog
+
+  7-1-file-upload-and-parsing-excel-csv: backlog
+  7-2-column-mapping-ui: backlog
+  7-3-import-confirmation-and-execution: backlog
+
+  epic-7-retrospective: optional
