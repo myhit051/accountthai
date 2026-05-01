@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
     '@libsql/client',
     'drizzle-orm',
   ],
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
