@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Contact, DocType, DOC_TYPE_LABELS } from '@/db/schema'
 import ContactSearch from './ContactSearch'
 import { createDocument, updateDocument, LineItem } from '@/actions/documents'
-import { formatCurrency, amountInThaiWords, calculateVat } from '@/lib/utils'
+import { formatCurrency, amountInThaiWords, calculateInclusiveVat } from '@/lib/utils'
 
 interface Props {
   contacts: Contact[]
@@ -22,6 +22,7 @@ const VAT_TYPES: Record<DocType, boolean> = {
 
 const PAYMENT_DOC_TYPES: DocType[] = ['INV', 'BL', 'RE']
 const VAT_SUPPORTED_DOC_TYPES: DocType[] = ['INV', 'QT', 'BL', 'RE', 'EXP']
+const DISCOUNT_RATE_DOC_TYPES: DocType[] = ['INV', 'QT', 'BL', 'RE']
 const EXPENSE_CATEGORIES = [
   'ซื้อสินค้าไว้ขาย',
   'ค่าขนส่งสินค้า/ลอจิสติกส์',
@@ -52,6 +53,7 @@ function getDefaultMetadata(docType: DocType): Record<string, string> {
     certificateDate: todayInputValue(),
     payerTaxCondition: 'หัก ณ ที่จ่าย',
     incomeCategoryCode: '5',
+    discountRate: '0',
     discountAmount: '0',
     withholdingTaxAmount: '0',
   }
@@ -80,27 +82,37 @@ function createLineItem(docType: DocType, category = ''): LineItem {
 }
 
 export default function DocumentForm({ contacts, docType, initialData }: Props) {
+  const initialMetadata = initialData?.metadata
+    ? { ...getDefaultMetadata(docType), ...JSON.parse(initialData.metadata) }
+    : getDefaultMetadata(docType)
   const [selectedContact, setSelectedContact] = useState<Contact | null>(
     initialData?.contactId ? contacts.find(c => c.id === initialData.contactId) || null : null
   )
   const [notes, setNotes] = useState(initialData?.notes || '')
   const [dueDate, setDueDate] = useState(initialData?.dueDate ? new Date(initialData.dueDate * 1000).toISOString().split('T')[0] : '')
-  const [includeVat, setIncludeVat] = useState(initialData ? initialData.vatAmount > 0 : VAT_TYPES[docType])
+  const [includeVat, setIncludeVat] = useState(initialData ? initialMetadata.priceIncludesVat === 'true' : VAT_TYPES[docType])
   const [lineItems, setLineItems] = useState<LineItem[]>(
     initialData?.lineItems ? JSON.parse(initialData.lineItems) : [
     createLineItem(docType),
   ])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [metadata, setMetadata] = useState<Record<string, string>>(
-    initialData?.metadata ? { ...getDefaultMetadata(docType), ...JSON.parse(initialData.metadata) } : getDefaultMetadata(docType)
+    initialMetadata
   )
 
-  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0)
-  const discountAmount = docType === 'EXP' ? Math.min(roundMoney(parseMoney(metadata.discountAmount)), subtotal) : 0
-  const taxableSubtotal = Math.max(subtotal - discountAmount, 0)
-  const { vatAmount, totalAmount: baseTotalAmount } = includeVat
-    ? calculateVat(taxableSubtotal)
-    : { vatAmount: 0, totalAmount: taxableSubtotal }
+  const lineItemsTotal = roundMoney(lineItems.reduce((sum, item) => sum + item.amount, 0))
+  const discountRate = DISCOUNT_RATE_DOC_TYPES.includes(docType) ? Math.min(Math.max(parseMoney(metadata.discountRate), 0), 100) : 0
+  const salesDiscountAmount = roundMoney(lineItemsTotal * discountRate / 100)
+  const expenseDiscountAmount = docType === 'EXP' ? Math.min(roundMoney(parseMoney(metadata.discountAmount)), lineItemsTotal) : 0
+  const discountAmount = DISCOUNT_RATE_DOC_TYPES.includes(docType) ? salesDiscountAmount : expenseDiscountAmount
+  const totalAfterDiscount = Math.max(lineItemsTotal - discountAmount, 0)
+  const {
+    subtotal,
+    vatAmount,
+    totalAmount: baseTotalAmount,
+  } = includeVat
+    ? calculateInclusiveVat(totalAfterDiscount)
+    : { subtotal: totalAfterDiscount, vatAmount: 0, totalAmount: totalAfterDiscount }
 
   const invoiceWithholdingEnabled = PAYMENT_DOC_TYPES.includes(docType) && metadata.withholdingTaxEnabled === 'true'
   const expenseWithholdingTaxAmount = docType === 'EXP' ? roundMoney(parseMoney(metadata.withholdingTaxAmount)) : 0
@@ -149,6 +161,10 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
     setIsSubmitting(true)
 
     const today = Math.floor(Date.now() / 1000)
+    const payloadMetadata = {
+      ...metadata,
+      priceIncludesVat: includeVat ? 'true' : 'false',
+    }
     const payload = {
       docType,
       date: initialData?.date || today,
@@ -168,7 +184,7 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
       totalAmount,
       withholdingTax: shouldCalculateWithholdingTax ? withholdingTaxAmount : 0,
       notes,
-      metadata,
+      metadata: payloadMetadata,
     }
 
     if (initialData?.id) {
@@ -546,7 +562,7 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
                 onChange={(e) => setIncludeVat(e.target.checked)}
                 className="rounded"
               />
-              รวม VAT 7%
+              ราคาที่กรอกรวม VAT 7%
             </label>
           )}
         </div>
@@ -664,37 +680,64 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
         {/* Totals */}
         <div className="ml-auto w-72 space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-500">ยอดก่อนภาษี</span>
-            <span className="font-mono font-medium">{formatCurrency(subtotal)}</span>
+            <span className="text-gray-500">รวมเป็นเงิน</span>
+            <span className="font-mono font-medium">{formatCurrency(lineItemsTotal)}</span>
           </div>
-          {docType === 'EXP' && discountAmount > 0 && (
-            <>
-              <div className="flex justify-between text-gray-500">
-                <span>ส่วนลด</span>
-                <span className="font-mono">-{formatCurrency(discountAmount)}</span>
+          {DISCOUNT_RATE_DOC_TYPES.includes(docType) && (
+            <div className="flex items-center justify-between gap-3 text-gray-500">
+              <label htmlFor="discount-rate">ส่วนลด</label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="discount-rate"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  className="form-input w-20 py-1 text-right font-mono"
+                  value={metadata.discountRate || '0'}
+                  onChange={e => setMetadata(prev => ({ ...prev, discountRate: e.target.value }))}
+                />
+                <span>%</span>
+                <span className="font-mono text-red-600 w-24 text-right">-{formatCurrency(discountAmount)}</span>
               </div>
+            </div>
+          )}
+          {(DISCOUNT_RATE_DOC_TYPES.includes(docType) || (docType === 'EXP' && discountAmount > 0)) && (
+            <>
+              {docType === 'EXP' && discountAmount > 0 && (
+                <div className="flex justify-between text-gray-500">
+                  <span>ส่วนลด</span>
+                  <span className="font-mono">-{formatCurrency(discountAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-500">
-                <span>หลังหักส่วนลด</span>
-                <span className="font-mono">{formatCurrency(taxableSubtotal)}</span>
+                <span>ราคาหลังหักส่วนลด</span>
+                <span className="font-mono">{formatCurrency(totalAfterDiscount)}</span>
               </div>
             </>
           )}
+          <div className="flex justify-between text-base font-bold text-gray-900 pt-2">
+            <span>จำนวนเงินรวมทั้งสิ้น</span>
+            <span className="font-mono text-blue-600">{formatCurrency(totalAmount)}</span>
+          </div>
           {includeVat && (
-            <div className="flex justify-between text-gray-500">
-              <span>ภาษีมูลค่าเพิ่ม 7%</span>
-              <span className="font-mono">{formatCurrency(vatAmount)}</span>
+            <div className="space-y-2 border-t border-gray-200 pt-2">
+              <div className="flex justify-between text-gray-500">
+                <span>ภาษีมูลค่าเพิ่ม 7%</span>
+                <span className="font-mono">{formatCurrency(vatAmount)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>ราคาไม่รวมภาษีมูลค่าเพิ่ม</span>
+                <span className="font-mono">{formatCurrency(subtotal)}</span>
+              </div>
             </div>
           )}
           {shouldCalculateWithholdingTax && (
-            <div className="flex justify-between text-gray-500">
+            <div className="flex justify-between text-gray-500 border-t border-gray-200 pt-2">
               <span>{docType === 'EXP' ? 'หัก ณ ที่จ่าย' : `ภาษีหัก ณ ที่จ่าย (${withholdingTaxRate}%)`}</span>
               <span className="font-mono text-red-600">-{formatCurrency(withholdingTaxAmount)}</span>
             </div>
           )}
-          <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
-            <span>ยอดรวมทั้งสิ้น</span>
-            <span className="font-mono text-blue-600">{formatCurrency(totalAmount)}</span>
-          </div>
           {shouldCalculateWithholdingTax && (
             <div className="flex justify-between text-base font-bold text-gray-900">
               <span>ยอดชำระ</span>

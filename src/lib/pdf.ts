@@ -76,13 +76,13 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
   } else if (doc.docType === 'EXP') {
     drawExpenseHeader(pdf, { doc, tenant, contact, sellerName, metadata })
     const afterItemsY = drawExpenseItemsTable(pdf, lineItems, metadata, 170)
-    const totalsBottomY = drawExpenseTotals(pdf, doc, metadata, Math.max(afterItemsY + 20, 300))
+    const totalsBottomY = drawExpenseTotals(pdf, doc, metadata, Math.max(afterItemsY + 20, 300), lineItems)
     drawExpensePaymentAndSignatures(pdf, { doc, metadata, startY: Math.max(totalsBottomY + 40, 640) })
   } else {
     drawPageBase(pdf)
     drawHeader(pdf, { doc, tenant, contact, sellerName, docTypeLabel, logo })
     const afterItemsY = drawItemsTable(pdf, lineItems, 252)
-    const totalsBottomY = drawTotals(pdf, doc, Math.max(afterItemsY + 18, 315))
+    const totalsBottomY = drawTotals(pdf, doc, Math.max(afterItemsY + 18, 315), lineItems, metadata)
     if (doc.docType === 'QT') {
       drawQuoteTermsAndSignatures(pdf, {
         doc,
@@ -229,7 +229,7 @@ function drawItemsTable(pdf: jsPDF, lineItems: any[], startY: number) {
   return y
 }
 
-function drawTotals(pdf: jsPDF, doc: any, startY: number) {
+function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [], metadata: Record<string, string> = {}) {
   const labelX = 458
   const amountX = 557
   let y = startY
@@ -238,16 +238,32 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number) {
   const totalAmount = numberValue(doc.totalAmount)
   const withholdingTax = numberValue(doc.withholdingTax)
   const netPayable = Math.max(totalAmount - withholdingTax, 0)
+  const lineItemsTotal = roundMoney(lineItems.reduce((sum, item) => sum + numberValue(item.amount), 0))
+  const discountRate = Math.min(Math.max(numberValue(metadata.discountRate), 0), 100)
+  const discount = roundMoney(lineItemsTotal * discountRate / 100)
+  const afterDiscount = Math.max(lineItemsTotal - discount, 0)
+  const priceIncludesVat = metadata.priceIncludesVat === 'true'
+  const showEnteredTotal = priceIncludesVat || discount > 0
 
-  row('รวมเป็นเงิน', subtotal, false)
-  if (vatAmount > 0) row('ภาษีมูลค่าเพิ่ม 7%', vatAmount, false)
-  row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
+  row('รวมเป็นเงิน', showEnteredTotal && lineItemsTotal > 0 ? lineItemsTotal : subtotal, false)
+  if (discount > 0) {
+    row(`ส่วนลด ${formatRate(discountRate)}%`, discount, false)
+    row('ราคาหลังหักส่วนลด', afterDiscount, false)
+  }
+  if (priceIncludesVat) {
+    row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
+    if (vatAmount > 0) row('ภาษีมูลค่าเพิ่ม 7%', vatAmount, false)
+    row('ราคาไม่รวมภาษีมูลค่าเพิ่ม', subtotal, false)
+  } else {
+    if (vatAmount > 0) row('ภาษีมูลค่าเพิ่ม 7%', vatAmount, false)
+    row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
+  }
 
   const amountWords = `(${amountInThaiWords(totalAmount)})`
   wrappedText(pdf, amountWords, 36, startY + 58, 250, { size: 12, lineHeight: 14 })
 
   if (withholdingTax > 0) {
-    const withholdingRate = subtotal > 0 ? Math.round((withholdingTax / subtotal) * 10000) / 100 : 0
+    const withholdingRate = numberValue(metadata.withholdingTaxRate) || (subtotal > 0 ? Math.round((withholdingTax / subtotal) * 10000) / 100 : 0)
     y += 13
     pdf.setDrawColor(LINE)
     pdf.line(330, y, 559, y)
@@ -446,20 +462,29 @@ function drawExpenseItemsTable(pdf: jsPDF, lineItems: any[], metadata: Record<st
   return y
 }
 
-function drawExpenseTotals(pdf: jsPDF, doc: any, metadata: Record<string, string>, startY: number) {
+function drawExpenseTotals(pdf: jsPDF, doc: any, metadata: Record<string, string>, startY: number, lineItems: any[] = []) {
   const subtotal = numberValue(doc.subtotal)
-  const discount = Math.min(numberValue(metadata.discountAmount), subtotal)
-  const afterDiscount = Math.max(subtotal - discount, 0)
+  const lineItemsTotal = roundMoney(lineItems.reduce((sum, item) => sum + numberValue(item.amount), 0))
+  const displaySubtotal = lineItemsTotal > 0 ? lineItemsTotal : subtotal
+  const discount = Math.min(numberValue(metadata.discountAmount), displaySubtotal)
+  const afterDiscount = Math.max(displaySubtotal - discount, 0)
   const vatAmount = numberValue(doc.vatAmount)
   const totalAmount = numberValue(doc.totalAmount)
-  const vatRate = deriveVatRate(vatAmount, afterDiscount)
+  const priceIncludesVat = metadata.priceIncludesVat === 'true'
+  const vatRate = deriveVatRate(vatAmount, subtotal)
   let y = startY
 
-  row('รวมเป็นเงิน', subtotal, false)
+  row('รวมเป็นเงิน', displaySubtotal, false)
   row('ส่วนลด', discount, false)
   row('จำนวนเงินหลังหักส่วนลด', afterDiscount, false)
-  row(`ภาษีมูลค่าเพิ่ม ${formatRate(vatRate)}%`, vatAmount, false)
-  row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
+  if (priceIncludesVat) {
+    row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
+    if (vatAmount > 0) row(`ภาษีมูลค่าเพิ่ม ${formatRate(vatRate)}%`, vatAmount, false)
+    row('ราคาไม่รวมภาษีมูลค่าเพิ่ม', subtotal, false)
+  } else {
+    if (vatAmount > 0) row(`ภาษีมูลค่าเพิ่ม ${formatRate(vatRate)}%`, vatAmount, false)
+    row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
+  }
 
   wrappedText(pdf, `(${amountInThaiWords(totalAmount)})`, 36, startY + 86, 260, { size: 12, lineHeight: 14 })
   return y
@@ -947,6 +972,10 @@ function formatDateObject(date: Date) {
 function numberValue(value: unknown) {
   const number = typeof value === 'number' ? value : parseFloat(String(value || 0))
   return Number.isFinite(number) ? number : 0
+}
+
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100
 }
 
 function money(value: unknown) {

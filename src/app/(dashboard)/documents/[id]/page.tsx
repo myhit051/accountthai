@@ -36,10 +36,19 @@ export default async function DocumentDetailPage({ params }: Props) {
   const isBlOrRe = ['BL', 'RE'].includes(doc.docType)
   const isQuoteOrBill = ['QT', 'BL'].includes(doc.docType)
   const isExpense = doc.docType === 'EXP'
-  const discountAmount = isExpense ? Math.min(parseFloat(metadata.discountAmount || '0') || 0, doc.subtotal) : 0
-  const subtotalAfterDiscount = Math.max(doc.subtotal - discountAmount, 0)
+  const usesPercentDiscount = ['INV', 'QT', 'BL', 'RE'].includes(doc.docType)
+  const priceIncludesVat = metadata.priceIncludesVat === 'true'
+  const lineItemsTotal = lineItems.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0)
+  const discountRate = usesPercentDiscount ? Math.min(Math.max(parseFloat(metadata.discountRate || '0') || 0, 0), 100) : 0
+  const discountAmount = usesPercentDiscount
+    ? Math.round(lineItemsTotal * discountRate) / 100
+    : isExpense
+    ? Math.min(parseFloat(metadata.discountAmount || '0') || 0, lineItemsTotal || doc.subtotal)
+    : 0
+  const totalAfterDiscount = Math.max(lineItemsTotal - discountAmount, 0)
   const withholdingTax = doc.withholdingTax || 0
   const netPayable = Math.max(doc.totalAmount - withholdingTax, 0)
+  const showEnteredTotal = priceIncludesVat || discountAmount > 0
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -163,26 +172,49 @@ export default async function DocumentDetailPage({ params }: Props) {
         {/* Totals */}
         <div className="ml-auto w-64 space-y-2 text-sm">
           <div className="flex justify-between text-gray-600">
-            <span>ยอดก่อนภาษี</span>
-            <span className="font-mono">{formatCurrency(doc.subtotal)}</span>
+            <span>{showEnteredTotal ? 'รวมเป็นเงิน' : 'ยอดก่อนภาษี'}</span>
+            <span className="font-mono">{formatCurrency(showEnteredTotal ? lineItemsTotal : doc.subtotal)}</span>
           </div>
-          {isExpense && discountAmount > 0 && (
+          {discountAmount > 0 && (
             <>
               <div className="flex justify-between text-gray-600">
-                <span>ส่วนลด</span>
+                <span>{usesPercentDiscount ? `ส่วนลด ${discountRate}%` : 'ส่วนลด'}</span>
                 <span className="font-mono">-{formatCurrency(discountAmount)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
-                <span>หลังหักส่วนลด</span>
-                <span className="font-mono">{formatCurrency(subtotalAfterDiscount)}</span>
+                <span>ราคาหลังหักส่วนลด</span>
+                <span className="font-mono">{formatCurrency(totalAfterDiscount)}</span>
               </div>
             </>
           )}
-          {doc.vatAmount > 0 && (
-            <div className="flex justify-between text-gray-600">
-              <span>VAT 7%</span>
-              <span className="font-mono">{formatCurrency(doc.vatAmount)}</span>
-            </div>
+          {priceIncludesVat && doc.vatAmount > 0 ? (
+            <>
+              <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-200 text-base">
+                <span>จำนวนเงินรวมทั้งสิ้น</span>
+                <span className="font-mono text-blue-600">{formatCurrency(doc.totalAmount)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>VAT 7%</span>
+                <span className="font-mono">{formatCurrency(doc.vatAmount)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>ราคาไม่รวมภาษีมูลค่าเพิ่ม</span>
+                <span className="font-mono">{formatCurrency(doc.subtotal)}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              {doc.vatAmount > 0 && (
+                <div className="flex justify-between text-gray-600">
+                  <span>VAT 7%</span>
+                  <span className="font-mono">{formatCurrency(doc.vatAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-200 text-base">
+                <span>ยอดรวม</span>
+                <span className="font-mono text-blue-600">{formatCurrency(doc.totalAmount)}</span>
+              </div>
+            </>
           )}
           {withholdingTax > 0 && (
             <div className="flex justify-between text-gray-600">
@@ -190,10 +222,6 @@ export default async function DocumentDetailPage({ params }: Props) {
               <span className="font-mono text-red-600">-{formatCurrency(withholdingTax)}</span>
             </div>
           )}
-          <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-200 text-base">
-            <span>ยอดรวม</span>
-            <span className="font-mono text-blue-600">{formatCurrency(doc.totalAmount)}</span>
-          </div>
           {withholdingTax > 0 && (
             <div className="flex justify-between font-bold text-gray-900 text-base">
               <span>ยอดชำระ</span>

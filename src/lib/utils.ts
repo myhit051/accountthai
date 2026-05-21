@@ -107,6 +107,13 @@ export function calculateVat(subtotal: number, vatRate: number = 0.07) {
   return { vatAmount: vat, totalAmount: total }
 }
 
+export function calculateInclusiveVat(totalIncludingVat: number, vatRate: number = 0.07) {
+  const total = Math.round(totalIncludingVat * 100) / 100
+  const subtotal = Math.round((total / (1 + vatRate)) * 100) / 100
+  const vat = Math.round((total - subtotal) * 100) / 100
+  return { subtotal, vatAmount: vat, totalAmount: total }
+}
+
 // ─── Encryption for Drive tokens ────────────────────────────────────────────
 import crypto from 'crypto'
 
