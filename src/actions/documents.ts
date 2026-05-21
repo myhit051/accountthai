@@ -20,9 +20,11 @@ async function getSession() {
 export interface LineItem {
   id: string
   description: string
+  category?: string
   quantity: number
   unit: string
   unitPrice: number
+  taxRate?: number
   amount: number
 }
 

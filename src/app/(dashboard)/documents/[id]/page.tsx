@@ -33,6 +33,12 @@ export default async function DocumentDetailPage({ params }: Props) {
   const isDraft = doc.status === 'draft'
   const isIssued = doc.status === 'issued'
   const isBlOrRe = ['BL', 'RE'].includes(doc.docType)
+  const isQuoteOrBill = ['QT', 'BL'].includes(doc.docType)
+  const isExpense = doc.docType === 'EXP'
+  const discountAmount = isExpense ? Math.min(parseFloat(metadata.discountAmount || '0') || 0, doc.subtotal) : 0
+  const subtotalAfterDiscount = Math.max(doc.subtotal - discountAmount, 0)
+  const withholdingTax = doc.withholdingTax || 0
+  const netPayable = Math.max(doc.totalAmount - withholdingTax, 0)
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -111,7 +117,8 @@ export default async function DocumentDetailPage({ params }: Props) {
             <div className="text-xs text-gray-400 mb-1">เลขที่เอกสาร</div>
             <div className="text-xl font-mono font-bold text-gray-900 flex items-center gap-2">
               {doc.docNumber}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" title="เลขที่ถูกล็อค">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round">
+                <title>เลขที่ถูกล็อค</title>
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </div>
@@ -140,6 +147,7 @@ export default async function DocumentDetailPage({ params }: Props) {
             <thead>
               <tr>
                 <th>รายการ</th>
+                {isExpense && <th>หมวดหมู่</th>}
                 <th className="text-center">จำนวน</th>
                 <th>หน่วย</th>
                 <th className="text-right">ราคา/หน่วย</th>
@@ -150,6 +158,7 @@ export default async function DocumentDetailPage({ params }: Props) {
               {lineItems.map((item: any, i: number) => (
                 <tr key={i}>
                   <td className="py-2.5">{item.description}</td>
+                  {isExpense && <td>{item.category || metadata.expenseCategory || '—'}</td>}
                   <td className="text-center font-mono">{item.quantity}</td>
                   <td>{item.unit}</td>
                   <td className="text-right font-mono">{formatCurrency(item.unitPrice)}</td>
@@ -166,20 +175,79 @@ export default async function DocumentDetailPage({ params }: Props) {
             <span>ยอดก่อนภาษี</span>
             <span className="font-mono">{formatCurrency(doc.subtotal)}</span>
           </div>
+          {isExpense && discountAmount > 0 && (
+            <>
+              <div className="flex justify-between text-gray-600">
+                <span>ส่วนลด</span>
+                <span className="font-mono">-{formatCurrency(discountAmount)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>หลังหักส่วนลด</span>
+                <span className="font-mono">{formatCurrency(subtotalAfterDiscount)}</span>
+              </div>
+            </>
+          )}
           {doc.vatAmount > 0 && (
             <div className="flex justify-between text-gray-600">
               <span>VAT 7%</span>
               <span className="font-mono">{formatCurrency(doc.vatAmount)}</span>
             </div>
           )}
+          {withholdingTax > 0 && (
+            <div className="flex justify-between text-gray-600">
+              <span>หัก ณ ที่จ่าย</span>
+              <span className="font-mono text-red-600">-{formatCurrency(withholdingTax)}</span>
+            </div>
+          )}
           <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-200 text-base">
             <span>ยอดรวม</span>
             <span className="font-mono text-blue-600">{formatCurrency(doc.totalAmount)}</span>
           </div>
+          {withholdingTax > 0 && (
+            <div className="flex justify-between font-bold text-gray-900 text-base">
+              <span>ยอดชำระ</span>
+              <span className="font-mono text-green-600">{formatCurrency(netPayable)}</span>
+            </div>
+          )}
           <div className="text-xs text-gray-400 text-right italic">
             ({amountInThaiWords(doc.totalAmount)})
           </div>
         </div>
+
+        {(metadata.paymentMethod || metadata.bankName || metadata.bankAccount) && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">การชำระเงิน</div>
+            <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {metadata.paymentMethod && <div>วิธีชำระ: {metadata.paymentMethod}</div>}
+              {metadata.paymentDate && <div>วันที่รับชำระ: {metadata.paymentDate}</div>}
+              {metadata.bankName && <div>ธนาคาร: {metadata.bankName}</div>}
+              {metadata.bankAccount && <div>เลขที่: <span className="font-mono">{metadata.bankAccount}</span></div>}
+            </div>
+          </div>
+        )}
+
+        {isQuoteOrBill && metadata.paymentTerms && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              {doc.docType === 'QT' ? 'เงื่อนไขใบเสนอราคา' : 'เงื่อนไขการชำระเงิน'}
+            </div>
+            <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{metadata.paymentTerms}</div>
+          </div>
+        )}
+
+        {doc.docType === 'WT' && (
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">รายละเอียดหนังสือรับรอง</div>
+            <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {metadata.filingForm && <div>แบบ: {metadata.filingForm}</div>}
+              {metadata.incomeType && <div>ประเภทเงินได้: {metadata.incomeType}</div>}
+              {metadata.paymentDate && <div>วันที่จ่ายเงิน: {metadata.paymentDate}</div>}
+              {metadata.certificateDate && <div>วันที่ออกหนังสือ: {metadata.certificateDate}</div>}
+              {metadata.payerTaxCondition && <div>ผู้ที่จ่ายเงิน: {metadata.payerTaxCondition}</div>}
+              {metadata.sequenceNumber && <div>ลำดับในแบบ: {metadata.sequenceNumber}</div>}
+            </div>
+          </div>
+        )}
 
         {/* Notes */}
         {doc.notes && (

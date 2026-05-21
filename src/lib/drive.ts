@@ -106,7 +106,7 @@ export async function uploadDocumentToDrive(
     const metadata = JSON.stringify({ name: filename, parents: [typeFolder] })
     const form = new FormData()
     form.append('metadata', new Blob([metadata], { type: 'application/json' }))
-    form.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }))
+    form.append('file', new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' }))
 
     const uploadRes = await fetch(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',

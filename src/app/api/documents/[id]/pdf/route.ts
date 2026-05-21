@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { generatePdfBuffer } from '@/lib/pdf'
 
+export const runtime = 'nodejs'
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -18,16 +20,11 @@ export async function GET(
     return new NextResponse('Not found or PDF generation failed', { status: 404 })
   }
 
-  if (result.isHtml) {
-    return new NextResponse(result.pdf, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    })
-  }
-
-  return new NextResponse(result.pdf, {
+  const disposition = request.nextUrl.searchParams.get('download') === '1' ? 'attachment' : 'inline'
+  return new NextResponse(new Uint8Array(result.pdf), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(result.filename)}`,
+      'Content-Disposition': `${disposition}; filename*=UTF-8''${encodeURIComponent(result.filename)}`,
     },
   })
 }

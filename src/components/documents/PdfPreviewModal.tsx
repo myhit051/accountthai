@@ -20,19 +20,18 @@ export default function PdfPreviewModal({ docId, docNumber }: { docId: string, d
 
   const handleDownload = async () => {
     try {
-      const html2pdf = (await import('html2pdf.js')).default
-      const iframe = document.getElementById('preview-iframe') as HTMLIFrameElement
-      if (!iframe?.contentDocument) return
-      
-      const opt = {
-        margin: 10,
-        filename: `${docNumber}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }
-      
-      html2pdf().from(iframe.contentDocument.body).set(opt).save()
+      const res = await fetch(`/api/documents/${docId}/pdf?download=1`)
+      if (!res.ok) return
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${docNumber}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
     } catch (err) {
       console.error(err)
     }
