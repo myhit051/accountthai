@@ -147,6 +147,11 @@ export async function voidDocument(id: string, reason: string) {
   revalidatePath('/')
 }
 
+export async function voidDocumentFromForm(id: string, formData: FormData) {
+  const reason = String(formData.get('reason') || '').trim() || 'ยกเลิกเอกสาร'
+  await voidDocument(id, reason)
+}
+
 export async function deleteDocument(id: string) {
   const session = await getSession()
   const tenantId = session.user.id

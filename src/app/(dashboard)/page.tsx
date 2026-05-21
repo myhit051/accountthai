@@ -162,7 +162,7 @@ export default async function DashboardPage({
                 recentDocs.map((doc) => {
                   const snapshot = doc.contactSnapshot ? JSON.parse(doc.contactSnapshot) : null
                   return (
-                    <tr key={doc.id} onClick={() => {}} className="cursor-pointer">
+                    <tr key={doc.id}>
                       <td>
                         <Link href={`/documents/${doc.id}`} className="font-mono text-blue-600 hover:underline text-xs">
                           {doc.docNumber}

@@ -4,10 +4,11 @@ import { redirect, notFound } from 'next/navigation'
 import { getDocumentById } from '@/db/queries/documents'
 import { formatCurrency, formatDateThai, amountInThaiWords } from '@/lib/utils'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
-import { issueDocument, markDocumentPaid, voidDocument, duplicateDocument, convertDocument, deleteDocument } from '@/actions/documents'
+import { issueDocument, markDocumentPaid, duplicateDocument, convertDocument } from '@/actions/documents'
 import Link from 'next/link'
 import PdfPreviewModal from '@/components/documents/PdfPreviewModal'
 import DriveUploader from '@/components/documents/DriveUploader'
+import VoidDocumentForm from '@/components/documents/VoidDocumentForm'
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'ร่าง', issued: 'ออกแล้ว', paid: 'ชำระแล้ว', void: 'ยกเลิก',
@@ -94,17 +95,7 @@ export default async function DocumentDetailPage({ params }: Props) {
 
           {/* Void */}
           {(isDraft || isIssued) && (
-            <form action={async (formData: FormData) => {
-              'use server'
-              await voidDocument(doc.id, formData.get('reason') as string || 'ยกเลิกเอกสาร')
-            }}>
-              <button type="submit" id="void-btn" className="btn-danger btn-sm" onClick={(e) => {
-                const reason = prompt('กรุณาระบุเหตุผลการยกเลิก')
-                if (!reason) e.preventDefault()
-              }}>
-                ยกเลิก
-              </button>
-            </form>
+            <VoidDocumentForm docId={doc.id} />
           )}
         </div>
       </div>
