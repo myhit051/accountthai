@@ -24,10 +24,6 @@ export default async function EditDocumentPage({
   const doc = await getDocumentById(id, tenantId)
 
   if (!doc) redirect('/documents')
-  if (doc.status !== 'draft') {
-    // Only allow editing drafts
-    redirect(`/documents/${doc.id}`)
-  }
 
   const contacts = await getContacts(tenantId)
   const docType = doc.docType as DocType

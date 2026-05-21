@@ -11,6 +11,8 @@ import { generateId } from '@/lib/utils'
 import { getNextDocNumber } from '@/db/queries/documents'
 import { DocType } from '@/db/schema'
 
+export type DocumentStatus = 'draft' | 'issued' | 'paid' | 'void'
+
 async function getSession() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) throw new Error('Unauthorized')
@@ -99,10 +101,36 @@ export async function updateDocument(id: string, data: Partial<CreateDocumentDat
       ...(data.metadata && { metadata: JSON.stringify(data.metadata) }),
       updatedAt: now,
     })
-    .where(and(eq(documents.id, id), eq(documents.tenantId, tenantId), eq(documents.status, 'draft')))
+    .where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)))
 
   revalidatePath(`/documents/${id}`)
   revalidatePath('/documents')
+  revalidatePath('/')
+}
+
+export async function updateDocumentStatus(id: string, status: DocumentStatus) {
+  const session = await getSession()
+  const tenantId = session.user.id
+  const now = Math.floor(Date.now() / 1000)
+  const allowedStatuses: DocumentStatus[] = ['draft', 'issued', 'paid', 'void']
+
+  if (!allowedStatuses.includes(status)) {
+    throw new Error('Invalid document status')
+  }
+
+  await db.update(documents)
+    .set({
+      status,
+      ...(status === 'issued' && { driveStatus: 'pending' }),
+      ...(status === 'draft' && { driveStatus: 'none' }),
+      ...(status === 'void' && { voidReason: 'เปลี่ยนสถานะเป็นยกเลิก' }),
+      updatedAt: now,
+    })
+    .where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)))
+
+  revalidatePath(`/documents/${id}`)
+  revalidatePath('/documents')
+  revalidatePath('/')
 }
 
 export async function issueDocument(id: string) {
