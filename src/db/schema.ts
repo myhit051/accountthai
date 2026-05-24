@@ -11,6 +11,8 @@ export const tenants = sqliteTable('tenants', {
   phone: text('phone'),
   email: text('email'),
   logoUrl: text('logo_url'),
+  signatureUrl: text('signature_url'),
+  stampUrl: text('stamp_url'),
   createdAt: integer('created_at').default(sql`(unixepoch())`),
   updatedAt: integer('updated_at').default(sql`(unixepoch())`),
 })

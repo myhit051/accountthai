@@ -13,19 +13,26 @@ export async function POST(request: NextRequest) {
 
   const form = await request.formData()
   const file = form.get('file') as File
+  const kindValue = String(form.get('kind') || 'logo')
+  const kind = ['logo', 'signature', 'stamp'].includes(kindValue) ? kindValue : 'logo'
   if (!file) {
     return new NextResponse('No file provided', { status: 400 })
   }
 
   try {
-    const blob = await put(`logos/${tenantId}-${file.name}`, file, {
+    const blob = await put(`company-assets/${kind}/${tenantId}-${file.name}`, file, {
       access: 'public',
       addRandomSuffix: false,
     })
 
-    // Update tenant logoUrl
+    const assetColumn = kind === 'signature'
+      ? { signatureUrl: blob.url }
+      : kind === 'stamp'
+      ? { stampUrl: blob.url }
+      : { logoUrl: blob.url }
+
     await db.update(tenants).set({
-      logoUrl: blob.url,
+      ...assetColumn,
       updatedAt: Math.floor(Date.now() / 1000)
     }).where(eq(tenants.id, tenantId))
 

@@ -3,7 +3,17 @@ import { auth } from '@/lib/auth'
 import { db } from '@/db'
 import { tenants } from '@/db/schema'
 import { eq } from 'drizzle-orm'
-import { generateId } from '@/lib/utils'
+
+export async function GET(request: NextRequest) {
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) return new NextResponse('Unauthorized', { status: 401 })
+
+  const tenantId = session.user.id
+  const [tenant] = await db.select().from(tenants)
+    .where(eq(tenants.id, tenantId)).limit(1)
+
+  return NextResponse.json({ tenant: tenant || null })
+}
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers })
@@ -23,12 +33,15 @@ export async function POST(request: NextRequest) {
       name: data.name,
       taxId: data.taxId,
       address: data.address,
-      branch: data.branch || 'สำนักงานใหญ่',
-      phone: data.phone,
-      email: data.email,
-      createdAt: now,
-      updatedAt: now,
-    })
+          branch: data.branch || 'สำนักงานใหญ่',
+          phone: data.phone,
+          email: data.email,
+          logoUrl: data.logoUrl,
+          signatureUrl: data.signatureUrl,
+          stampUrl: data.stampUrl,
+          createdAt: now,
+          updatedAt: now,
+        })
   } else {
     await db.update(tenants).set({
       name: data.name,
@@ -37,6 +50,9 @@ export async function POST(request: NextRequest) {
       branch: data.branch,
       phone: data.phone,
       email: data.email,
+      logoUrl: data.logoUrl,
+      signatureUrl: data.signatureUrl,
+      stampUrl: data.stampUrl,
       updatedAt: now,
     }).where(eq(tenants.id, tenantId))
   }

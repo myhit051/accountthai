@@ -20,7 +20,7 @@ const VAT_TYPES: Record<DocType, boolean> = {
   INV: true, QT: true, BL: true, RE: true, EXP: false, WT: false,
 }
 
-const PAYMENT_DOC_TYPES: DocType[] = ['INV', 'BL', 'RE']
+const PAYMENT_DOC_TYPES: DocType[] = ['INV', 'QT', 'BL', 'RE']
 const VAT_SUPPORTED_DOC_TYPES: DocType[] = ['INV', 'QT', 'BL', 'RE', 'EXP']
 const DISCOUNT_RATE_DOC_TYPES: DocType[] = ['INV', 'QT', 'BL', 'RE']
 const EXPENSE_CATEGORIES = [

@@ -16,6 +16,7 @@ type ImageAsset = {
 
 const PAGE_WIDTH = 595.28
 const BLUE = '#2a9bd4'
+const QUOTE_ORANGE = '#f28c28'
 const DARK = '#111827'
 const LINE = '#cfcfcf'
 
@@ -31,9 +32,10 @@ export async function generatePdfBuffer(id: string, tenantId: string): Promise<P
   const metadata = parseJson<Record<string, string>>(doc.metadata || '{}', {})
   const docTypeLabel = getPdfDocTitle(doc.docType as DocType, DOC_TYPE_LABELS[doc.docType as DocType] || doc.docType)
 
-  const [logo, signature] = await Promise.all([
+  const [logo, signature, stamp] = await Promise.all([
     getImageAsset(tenant?.logoUrl),
-    getImageAsset(metadata.signatureUrl),
+    getImageAsset(metadata.signatureUrl || tenant?.signatureUrl),
+    getImageAsset(metadata.stampUrl || tenant?.stampUrl),
   ])
 
   const pdf = generateAccountingPdf({
@@ -46,6 +48,7 @@ export async function generatePdfBuffer(id: string, tenantId: string): Promise<P
     docTypeLabel,
     logo,
     signature,
+    stamp,
   })
 
   const partnerName = contact?.name || 'noname'
@@ -54,7 +57,7 @@ export async function generatePdfBuffer(id: string, tenantId: string): Promise<P
   return { pdf, filename, isHtml: false }
 }
 
-export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerName, metadata, docTypeLabel, logo, signature }: any): Buffer {
+export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerName, metadata, docTypeLabel, logo, signature, stamp }: any): Buffer {
   const pdf = new jsPDF({
     unit: 'pt',
     format: 'a4',
@@ -72,16 +75,16 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
   })
 
   if (doc.docType === 'WT') {
-    drawWithholdingTaxCertificate(pdf, { doc, lineItems, contact, tenant, metadata, signature })
+    drawWithholdingTaxCertificate(pdf, { doc, lineItems, contact, tenant, metadata, signature, stamp })
   } else if (doc.docType === 'EXP') {
     drawExpenseHeader(pdf, { doc, tenant, contact, sellerName, metadata })
     const afterItemsY = drawExpenseItemsTable(pdf, lineItems, metadata, 170)
     const totalsBottomY = drawExpenseTotals(pdf, doc, metadata, Math.max(afterItemsY + 20, 300), lineItems)
-    drawExpensePaymentAndSignatures(pdf, { doc, metadata, startY: Math.max(totalsBottomY + 40, 640) })
+    drawExpensePaymentAndSignatures(pdf, { doc, metadata, signature, stamp, startY: Math.max(totalsBottomY + 40, 640) })
   } else {
-    drawPageBase(pdf)
+    drawPageBase(pdf, doc.docType)
     drawHeader(pdf, { doc, tenant, contact, sellerName, docTypeLabel, logo })
-    const afterItemsY = drawItemsTable(pdf, lineItems, 252)
+    const afterItemsY = drawItemsTable(pdf, lineItems, 252, doc.docType)
     const totalsBottomY = drawTotals(pdf, doc, Math.max(afterItemsY + 18, 315), lineItems, metadata)
     if (doc.docType === 'QT') {
       drawQuoteTermsAndSignatures(pdf, {
@@ -90,6 +93,7 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
         contact,
         metadata,
         signature,
+        stamp,
         startY: Math.max(totalsBottomY + 24, 640),
       })
     } else {
@@ -99,6 +103,7 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
         contact,
         metadata,
         signature,
+        stamp,
         startY: Math.max(totalsBottomY + 24, 666),
       })
     }
@@ -120,8 +125,8 @@ function registerThaiFonts(pdf: jsPDF) {
   pdf.setFont('THSarabun', 'normal')
 }
 
-function drawPageBase(pdf: jsPDF) {
-  pdf.setFillColor(BLUE)
+function drawPageBase(pdf: jsPDF, docType?: string) {
+  pdf.setFillColor(docType === 'QT' ? QUOTE_ORANGE : BLUE)
   pdf.triangle(PAGE_WIDTH - 60, 12, PAGE_WIDTH - 12, 12, PAGE_WIDTH - 12, 82, 'F')
   text(pdf, '1', PAGE_WIDTH - 29, 38, { size: 18, color: '#ffffff', align: 'center' })
 }
@@ -146,25 +151,26 @@ function drawHeader(pdf: jsPDF, { doc, tenant, contact, sellerName, docTypeLabel
   }
   if (tenant?.phone) text(pdf, `โทร. ${tenant.phone}`, 36, y, { size: 12 })
 
-  text(pdf, docTypeLabel, 422, 70, { size: 20, color: BLUE, align: 'center' })
-  text(pdf, getDocumentSubtitle(doc.docType), 422, 86, { size: 12, color: BLUE, align: 'center' })
+  const accent = doc.docType === 'QT' ? QUOTE_ORANGE : BLUE
+  text(pdf, docTypeLabel, 422, 70, { size: 20, color: accent, align: 'center' })
+  text(pdf, getDocumentSubtitle(doc.docType), 422, 86, { size: 12, color: accent, align: 'center' })
   pdf.setDrawColor(LINE)
   pdf.line(312, 101, 540, 101)
   pdf.line(312, doc.dueDate ? 176 : 158, 540, doc.dueDate ? 176 : 158)
 
   const infoY = 121
-  text(pdf, 'เลขที่', 318, infoY, { size: 12, color: BLUE, style: 'bold' })
+  text(pdf, 'เลขที่', 318, infoY, { size: 12, color: accent, style: 'bold' })
   text(pdf, doc.docNumber, 402, infoY, { size: 12 })
-  text(pdf, 'วันที่', 318, infoY + 17, { size: 12, color: BLUE, style: 'bold' })
+  text(pdf, 'วันที่', 318, infoY + 17, { size: 12, color: accent, style: 'bold' })
   text(pdf, formatDateForPdf(doc.date), 402, infoY + 17, { size: 12 })
-  text(pdf, getDocumentOwnerLabel(doc.docType), 318, infoY + 34, { size: 12, color: BLUE, style: 'bold' })
+  text(pdf, getDocumentOwnerLabel(doc.docType), 318, infoY + 34, { size: 12, color: accent, style: 'bold' })
   text(pdf, sellerName || '-', 402, infoY + 34, { size: 12 })
   if (doc.dueDate) {
-    text(pdf, getDueDateLabel(doc.docType), 318, infoY + 51, { size: 12, color: BLUE, style: 'bold' })
+    text(pdf, getDueDateLabel(doc.docType), 318, infoY + 51, { size: 12, color: accent, style: 'bold' })
     text(pdf, formatDateForPdf(doc.dueDate), 402, infoY + 51, { size: 12 })
   }
 
-  text(pdf, getCounterpartyLabel(doc.docType), 36, 182, { size: 13, color: BLUE, style: 'bold' })
+  text(pdf, getCounterpartyLabel(doc.docType), 36, 182, { size: 13, color: accent, style: 'bold' })
   if (contact) {
     let customerY = 199
     text(pdf, contactName, 36, customerY, { size: 12.5, style: 'bold' })
@@ -176,7 +182,7 @@ function drawHeader(pdf: jsPDF, { doc, tenant, contact, sellerName, docTypeLabel
   }
 }
 
-function drawItemsTable(pdf: jsPDF, lineItems: any[], startY: number) {
+function drawItemsTable(pdf: jsPDF, lineItems: any[], startY: number, docType?: string) {
   const x = 36
   const width = 523
   let y = startY
@@ -208,7 +214,7 @@ function drawItemsTable(pdf: jsPDF, lineItems: any[], startY: number) {
     const rowHeight = Math.max(18, descLines.length * 13 + 5)
     if (y + rowHeight > 610) {
       pdf.addPage()
-      drawPageBase(pdf)
+      drawPageBase(pdf, docType)
       y = 48
       drawHeader()
     }
@@ -233,6 +239,7 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [],
   const labelX = 458
   const amountX = 557
   let y = startY
+  const accent = doc.docType === 'QT' ? QUOTE_ORANGE : BLUE
   const subtotal = numberValue(doc.subtotal)
   const vatAmount = numberValue(doc.vatAmount)
   const totalAmount = numberValue(doc.totalAmount)
@@ -251,9 +258,9 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [],
     row('ราคาหลังหักส่วนลด', afterDiscount, false)
   }
   if (priceIncludesVat) {
-    row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
     if (vatAmount > 0) row('ภาษีมูลค่าเพิ่ม 7%', vatAmount, false)
     row('ราคาไม่รวมภาษีมูลค่าเพิ่ม', subtotal, false)
+    row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
   } else {
     if (vatAmount > 0) row('ภาษีมูลค่าเพิ่ม 7%', vatAmount, false)
     row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
@@ -275,17 +282,17 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [],
   return y
 
   function row(label: string, amount: number, bold: boolean) {
-    text(pdf, label, labelX, y, { size: 12, color: BLUE, align: 'right', style: bold ? 'bold' : 'normal' })
+    text(pdf, label, labelX, y, { size: 12, color: accent, align: 'right', style: bold ? 'bold' : 'normal' })
     text(pdf, `${money(amount)} บาท`, amountX, y, { size: 12, align: 'right', style: bold ? 'bold' : 'normal' })
     y += 18
   }
 }
 
-function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, signature, startY }: any) {
+function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, signature, stamp, startY }: any) {
   let paymentY = startY
   if (paymentY > 680) {
     pdf.addPage()
-    drawPageBase(pdf)
+    drawPageBase(pdf, doc.docType)
     paymentY = 104
   }
   const paymentMethod = metadata.paymentMethod || ''
@@ -323,6 +330,9 @@ function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, 
   if (signature) {
     drawImage(pdf, signature, 366, rowY + 59, 88, 38)
   }
+  if (stamp) {
+    drawImage(pdf, stamp, 430, rowY + 50, 58, 58)
+  }
 
   const dateY = rowY + 100
   text(pdf, paymentDate, 502, dateY - 8, { size: 12, align: 'center' })
@@ -337,39 +347,48 @@ function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, 
   text(pdf, 'วันที่', 512, dateY + 16, { size: 12, align: 'center' })
 }
 
-function drawQuoteTermsAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, signature, startY }: any) {
+function drawQuoteTermsAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, signature, stamp, startY }: any) {
   let y = startY
   if (y > 680) {
     pdf.addPage()
-    drawPageBase(pdf)
+    drawPageBase(pdf, doc.docType)
     y = 104
   }
 
-  const terms = metadata.paymentTerms || metadata.validityNote || doc.notes || 'ราคานี้ยังไม่รวมเงื่อนไขเพิ่มเติม'
-  text(pdf, 'เงื่อนไข / หมายเหตุ', 36, y, { size: 12, color: BLUE, style: 'bold' })
-  y = wrappedText(pdf, terms, 36, y + 18, 520, { size: 12, lineHeight: 14 })
+  const terms = metadata.paymentTerms || metadata.validityNote || ''
+  if (terms) {
+    text(pdf, 'เงื่อนไข / หมายเหตุ', 36, y, { size: 12, color: QUOTE_ORANGE, style: 'bold' })
+    y = wrappedText(pdf, terms, 36, y + 18, 520, { size: 12, lineHeight: 14 })
+  }
 
   let signY = Math.max(y + 54, 724)
   if (signY > 790) {
     pdf.addPage()
-    drawPageBase(pdf)
+    drawPageBase(pdf, doc.docType)
     signY = 220
   }
 
   const customerName = contact?.name ? withBranch(contact.name, contact.branch) : ''
-  text(pdf, `ในนาม ${tenant?.name || '-'}`, 150, signY - 36, { size: 12, align: 'center' })
-  text(pdf, customerName ? `ในนาม ${customerName}` : 'ผู้อนุมัติ / ลูกค้า', 445, signY - 36, { size: 12, align: 'center' })
+  text(pdf, customerName ? `ในนาม ${customerName}` : 'ในนาม ลูกค้า', 150, signY - 36, { size: 12, align: 'center' })
+  text(pdf, `ในนาม ${tenant?.name || '-'}`, 445, signY - 36, { size: 12, align: 'center' })
 
   if (signature) {
-    drawImage(pdf, signature, 106, signY - 72, 88, 38)
+    drawImage(pdf, signature, 401, signY - 72, 88, 38)
+  }
+  if (stamp) {
+    drawImage(pdf, stamp, 358, signY - 86, 64, 64)
   }
 
-  text(pdf, formatDateForPdf(doc.date), 150, signY - 8, { size: 12, align: 'center' })
+  text(pdf, formatDateForPdf(doc.date), 445, signY - 8, { size: 12, align: 'center' })
   pdf.setDrawColor(LINE)
   pdf.line(72, signY, 228, signY)
+  pdf.line(238, signY, 394, signY)
   pdf.line(367, signY, 523, signY)
-  text(pdf, 'ผู้เสนอราคา', 150, signY + 16, { size: 12, align: 'center' })
+  pdf.line(533, signY, 559, signY)
+  text(pdf, 'ผู้สั่งซื้อสินค้า', 150, signY + 16, { size: 12, align: 'center' })
+  text(pdf, 'วันที่', 316, signY + 16, { size: 12, align: 'center' })
   text(pdf, 'ผู้อนุมัติ', 445, signY + 16, { size: 12, align: 'center' })
+  text(pdf, 'วันที่', 546, signY + 16, { size: 12, align: 'center' })
 }
 
 function drawExpenseHeader(pdf: jsPDF, { doc, tenant, contact, sellerName, metadata }: any) {
@@ -496,7 +515,7 @@ function drawExpenseTotals(pdf: jsPDF, doc: any, metadata: Record<string, string
   }
 }
 
-function drawExpensePaymentAndSignatures(pdf: jsPDF, { doc, metadata, startY }: any) {
+function drawExpensePaymentAndSignatures(pdf: jsPDF, { doc, metadata, signature, stamp, startY }: any) {
   let y = startY
   if (y > 665) {
     pdf.addPage()
@@ -553,6 +572,10 @@ function drawExpensePaymentAndSignatures(pdf: jsPDF, { doc, metadata, startY }: 
 
   boxes.forEach(box => {
     text(pdf, box.label, box.center, signatureY, { size: 11, align: 'center' })
+    if (box.label.includes('Approved')) {
+      if (signature) drawImage(pdf, signature, box.x + 34, signatureY + 3, 86, 34)
+      if (stamp) drawImage(pdf, stamp, box.x + 86, signatureY - 6, 58, 58)
+    }
     pdf.line(box.x, signatureY + 34, box.x + 154, signatureY + 34)
     text(pdf, '(', box.x, signatureY + 62, { size: 12 })
     text(pdf, ')', box.x + 154, signatureY + 62, { size: 12, align: 'right' })
@@ -561,7 +584,7 @@ function drawExpensePaymentAndSignatures(pdf: jsPDF, { doc, metadata, startY }: 
   })
 }
 
-function drawWithholdingTaxCertificate(pdf: jsPDF, { doc, lineItems, contact, tenant, metadata, signature }: any) {
+function drawWithholdingTaxCertificate(pdf: jsPDF, { doc, lineItems, contact, tenant, metadata, signature, stamp }: any) {
   const marginX = 28
   const width = 539
   const payerName = withBranch(tenant?.name || 'บริษัทของคุณ', tenant?.branch)
@@ -666,6 +689,7 @@ function drawWithholdingTaxCertificate(pdf: jsPDF, { doc, lineItems, contact, te
   roundedBox(pdf, marginX + 154, certifyY, width - 178, 96, 3)
   text(pdf, 'ขอรับรองว่าข้อความและตัวเลขดังกล่าวข้างต้นถูกต้องตรงกับความจริงทุกประการ', 370, certifyY + 18, { size: 11, align: 'center' })
   if (signature) drawImage(pdf, signature, 286, certifyY + 40, 76, 30)
+  if (stamp) drawImage(pdf, stamp, 360, certifyY + 28, 52, 52)
   text(pdf, 'ลงชื่อ', 212, certifyY + 66, { size: 11 })
   dottedLine(pdf, 238, certifyY + 66, 456)
   text(pdf, 'ผู้จ่ายเงิน', 462, certifyY + 66, { size: 11 })
@@ -921,14 +945,14 @@ function getPdfDocTitle(docType: DocType, fallback: string) {
 
 function getDocumentSubtitle(docType: DocType) {
   if (docType === 'INV') return 'ต้นฉบับ (เอกสารออกเป็นชุด)'
-  if (docType === 'QT') return 'Quotation'
+  if (docType === 'QT') return ''
   if (docType === 'BL') return 'Invoice'
   if (docType === 'RE') return 'Receipt'
   return ''
 }
 
 function getDocumentOwnerLabel(docType: DocType) {
-  if (docType === 'QT') return 'ผู้เสนอ'
+  if (docType === 'QT') return 'ผู้ขาย'
   if (docType === 'BL') return 'ผู้แจ้งหนี้'
   if (docType === 'RE') return 'ผู้รับเงิน'
   return 'ผู้ขาย'
