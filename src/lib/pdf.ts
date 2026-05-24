@@ -373,11 +373,11 @@ function drawQuoteTermsAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadat
   text(pdf, customerName ? `ในนาม ${customerName}` : 'ในนาม ลูกค้า', 132, signY - 36, { size: 12, align: 'center' })
   text(pdf, `ในนาม ${tenant?.name || '-'}`, 411, signY - 36, { size: 12, align: 'center' })
 
-  if (signature) {
-    drawImageContain(pdf, signature, 383, signY - 76, 72, 24)
-  }
   if (stamp) {
-    drawImageContain(pdf, stamp, 284, signY - 84, 66, 54)
+    drawImageContain(pdf, stamp, 356, signY - 78, 80, 42)
+  }
+  if (signature) {
+    drawImageContain(pdf, signature, 398, signY - 68, 68, 32)
   }
 
   text(pdf, formatDateForPdf(doc.date), 525, signY - 8, { size: 12, align: 'center' })
