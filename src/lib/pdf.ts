@@ -266,7 +266,8 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [],
     row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
   }
 
-  const amountWords = `(${amountInThaiWords(totalAmount)})`
+  const amountForWords = withholdingTax > 0 ? netPayable : totalAmount
+  const amountWords = `(${amountInThaiWords(amountForWords)})`
   wrappedText(pdf, amountWords, 36, startY + 58, 250, { size: 12, lineHeight: 14 })
 
   if (withholdingTax > 0) {

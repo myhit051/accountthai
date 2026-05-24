@@ -234,7 +234,7 @@ export default async function DocumentDetailPage({ params }: Props) {
             </div>
           )}
           <div className="text-xs text-gray-400 text-right italic">
-            ({amountInThaiWords(doc.totalAmount)})
+            ({amountInThaiWords(withholdingTax > 0 ? netPayable : doc.totalAmount)})
           </div>
         </div>
 

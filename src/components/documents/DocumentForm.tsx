@@ -746,7 +746,7 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
           )}
           {totalAmount > 0 && (
             <div className="text-xs text-gray-400 text-right italic">
-              ({amountInThaiWords(totalAmount)})
+              ({amountInThaiWords(shouldCalculateWithholdingTax ? netPayable : totalAmount)})
             </div>
           )}
         </div>

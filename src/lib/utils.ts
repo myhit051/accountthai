@@ -42,22 +42,40 @@ export function formatNumber(n: number): string {
 }
 
 // ─── Amount in Thai Words ─────────────────────────────────────────────────────
-const ones = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า', 'สิบ']
-const tens = ['', 'สิบ', 'ยี่สิบ', 'สามสิบ', 'สี่สิบ', 'ห้าสิบ', 'หกสิบ', 'เจ็ดสิบ', 'แปดสิบ', 'เก้าสิบ']
-const millions = ['', 'ล้าน', 'สองล้าน']
+const THAI_DIGITS = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า']
+const THAI_POSITIONS = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน']
 
-function threeDigitWords(n: number): string {
-  if (n === 0) return ''
-  const h = Math.floor(n / 100)
-  const t = Math.floor((n % 100) / 10)
-  const o = n % 10
-  let result = ''
-  if (h > 0) result += ones[h] + 'ร้อย'
-  if (t > 0) result += tens[t]
-  if (o > 0) {
-    if (t === 1 && o === 1) result += 'เอ็ด'
-    else result += ones[o]
+function integerToThaiWords(value: number): string {
+  if (value === 0) return ''
+  if (value >= 1000000) {
+    const millionPart = Math.floor(value / 1000000)
+    const remainder = value % 1000000
+    return `${integerToThaiWords(millionPart)}ล้าน${integerToThaiWords(remainder)}`
   }
+
+  const digits = String(value).split('').map(Number)
+  const length = digits.length
+  let result = ''
+
+  digits.forEach((digit, index) => {
+    if (digit === 0) return
+    const position = length - index - 1
+
+    if (position === 1) {
+      if (digit === 1) result += 'สิบ'
+      else if (digit === 2) result += 'ยี่สิบ'
+      else result += `${THAI_DIGITS[digit]}สิบ`
+      return
+    }
+
+    if (position === 0 && digit === 1 && length > 1) {
+      result += 'เอ็ด'
+      return
+    }
+
+    result += `${THAI_DIGITS[digit]}${THAI_POSITIONS[position]}`
+  })
+
   return result
 }
 
@@ -68,19 +86,9 @@ export function amountInThaiWords(amount: number): string {
 
   if (baht === 0 && satang === 0) return 'ศูนย์บาทถ้วน'
 
-  let result = ''
-  const mil = Math.floor(baht / 1000000)
-  const remainder = baht % 1000000
-  const thou = Math.floor(remainder / 1000)
-  const hun = remainder % 1000
-
-  if (mil > 0) result += threeDigitWords(mil) + 'ล้าน'
-  if (thou > 0) result += threeDigitWords(thou) + 'พัน'
-  if (hun > 0) result += threeDigitWords(hun)
-
-  result += 'บาท'
+  let result = baht > 0 ? `${integerToThaiWords(baht)}บาท` : ''
   if (satang > 0) {
-    result += threeDigitWords(satang) + 'สตางค์'
+    result += `${integerToThaiWords(satang)}สตางค์`
   } else {
     result += 'ถ้วน'
   }
