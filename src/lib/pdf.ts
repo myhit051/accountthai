@@ -266,10 +266,6 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [],
     row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
   }
 
-  const amountForWords = withholdingTax > 0 ? netPayable : totalAmount
-  const amountWords = `(${amountInThaiWords(amountForWords)})`
-  wrappedText(pdf, amountWords, 36, startY + 58, 250, { size: 12, lineHeight: 14 })
-
   if (withholdingTax > 0) {
     const withholdingRate = numberValue(metadata.withholdingTaxRate) || (subtotal > 0 ? Math.round((withholdingTax / subtotal) * 10000) / 100 : 0)
     y += 13
@@ -279,6 +275,10 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [],
     row(`หักภาษี ณ ที่จ่าย ${formatRate(withholdingRate)}%`, withholdingTax, false)
     row('ยอดชำระ', netPayable, true)
   }
+
+  const amountForWords = withholdingTax > 0 ? netPayable : totalAmount
+  const amountWords = `(${amountInThaiWords(amountForWords)})`
+  wrappedText(pdf, amountWords, 36, Math.max(startY + 58, y - 18), 270, { size: 12, lineHeight: 14 })
 
   return y
 
@@ -332,7 +332,7 @@ function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, 
     drawImage(pdf, signature, 366, rowY + 59, 88, 38)
   }
   if (stamp) {
-    drawImage(pdf, stamp, 430, rowY + 50, 58, 58)
+    drawImageContain(pdf, stamp, 420, rowY + 48, 76, 58)
   }
 
   const dateY = rowY + 100
@@ -377,7 +377,7 @@ function drawQuoteTermsAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadat
     drawImage(pdf, signature, 401, signY - 72, 88, 38)
   }
   if (stamp) {
-    drawImage(pdf, stamp, 358, signY - 86, 64, 64)
+    drawImageContain(pdf, stamp, 350, signY - 88, 112, 54)
   }
 
   text(pdf, formatDateForPdf(doc.date), 445, signY - 8, { size: 12, align: 'center' })
@@ -575,7 +575,7 @@ function drawExpensePaymentAndSignatures(pdf: jsPDF, { doc, metadata, signature,
     text(pdf, box.label, box.center, signatureY, { size: 11, align: 'center' })
     if (box.label.includes('Approved')) {
       if (signature) drawImage(pdf, signature, box.x + 34, signatureY + 3, 86, 34)
-      if (stamp) drawImage(pdf, stamp, box.x + 86, signatureY - 6, 58, 58)
+      if (stamp) drawImageContain(pdf, stamp, box.x + 58, signatureY - 8, 92, 54)
     }
     pdf.line(box.x, signatureY + 34, box.x + 154, signatureY + 34)
     text(pdf, '(', box.x, signatureY + 62, { size: 12 })
@@ -690,7 +690,7 @@ function drawWithholdingTaxCertificate(pdf: jsPDF, { doc, lineItems, contact, te
   roundedBox(pdf, marginX + 154, certifyY, width - 178, 96, 3)
   text(pdf, 'ขอรับรองว่าข้อความและตัวเลขดังกล่าวข้างต้นถูกต้องตรงกับความจริงทุกประการ', 370, certifyY + 18, { size: 11, align: 'center' })
   if (signature) drawImage(pdf, signature, 286, certifyY + 40, 76, 30)
-  if (stamp) drawImage(pdf, stamp, 360, certifyY + 28, 52, 52)
+  if (stamp) drawImageContain(pdf, stamp, 350, certifyY + 28, 86, 52)
   text(pdf, 'ลงชื่อ', 212, certifyY + 66, { size: 11 })
   dottedLine(pdf, 238, certifyY + 66, 456)
   text(pdf, 'ผู้จ่ายเงิน', 462, certifyY + 66, { size: 11 })
@@ -863,6 +863,23 @@ function drawImage(pdf: jsPDF, image: ImageAsset, x: number, y: number, width: n
     pdf.addImage(image.dataUrl, image.format, x, y, width, height, undefined, 'FAST')
   } catch {
     // Bad image payloads should not block document generation.
+  }
+}
+
+function drawImageContain(pdf: jsPDF, image: ImageAsset, x: number, y: number, width: number, height: number) {
+  try {
+    const properties = (pdf as any).getImageProperties(image.dataUrl)
+    const imageWidth = Number(properties?.width) || width
+    const imageHeight = Number(properties?.height) || height
+    const imageRatio = imageWidth / imageHeight
+    const boxRatio = width / height
+    const drawWidth = imageRatio > boxRatio ? width : height * imageRatio
+    const drawHeight = imageRatio > boxRatio ? width / imageRatio : height
+    const drawX = x + (width - drawWidth) / 2
+    const drawY = y + (height - drawHeight) / 2
+    pdf.addImage(image.dataUrl, image.format, drawX, drawY, drawWidth, drawHeight, undefined, 'FAST')
+  } catch {
+    drawImage(pdf, image, x, y, width, height)
   }
 }
 
