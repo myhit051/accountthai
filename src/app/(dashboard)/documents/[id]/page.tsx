@@ -9,6 +9,7 @@ import Link from 'next/link'
 import PdfPreviewModal from '@/components/documents/PdfPreviewModal'
 import DriveUploader from '@/components/documents/DriveUploader'
 import VoidDocumentForm from '@/components/documents/VoidDocumentForm'
+import DeleteDocumentButton from '@/components/documents/DeleteDocumentButton'
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'ร่าง', issued: 'ออกแล้ว', paid: 'ชำระแล้ว', void: 'ยกเลิก',
@@ -105,6 +106,10 @@ export default async function DocumentDetailPage({ params }: Props) {
           {/* Void */}
           {(isDraft || isIssued) && (
             <VoidDocumentForm docId={doc.id} />
+          )}
+
+          {isDraft && (
+            <DeleteDocumentButton docId={doc.id} docNumber={doc.docNumber} />
           )}
         </div>
       </div>

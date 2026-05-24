@@ -60,6 +60,8 @@ export async function updateContact(id: string, data: Partial<ContactData>) {
     .where(and(eq(contacts.id, id), eq(contacts.tenantId, tenantId)))
 
   revalidatePath('/contacts')
+  revalidatePath(`/contacts/${id}`)
+  revalidatePath(`/contacts/${id}/edit`)
   return { success: true }
 }
 
@@ -74,5 +76,6 @@ export async function deleteContact(id: string) {
     .where(and(eq(contacts.id, id), eq(contacts.tenantId, tenantId)))
 
   revalidatePath('/contacts')
+  revalidatePath(`/contacts/${id}`)
   return { success: true }
 }

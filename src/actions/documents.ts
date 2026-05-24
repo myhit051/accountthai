@@ -185,6 +185,15 @@ export async function deleteDocument(id: string) {
   const tenantId = session.user.id
   const now = Math.floor(Date.now() / 1000)
 
+  const [doc] = await db.select({ status: documents.status }).from(documents)
+    .where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)))
+    .limit(1)
+
+  if (!doc) throw new Error('Document not found')
+  if (doc.status !== 'draft') {
+    throw new Error('Only draft documents can be deleted')
+  }
+
   await db.update(documents)
     .set({ isDeleted: true, updatedAt: now })
     .where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)))
