@@ -374,22 +374,22 @@ function drawQuoteTermsAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadat
   text(pdf, `ในนาม ${tenant?.name || '-'}`, 445, signY - 36, { size: 12, align: 'center' })
 
   if (signature) {
-    drawImage(pdf, signature, 401, signY - 72, 88, 38)
+    drawImageContain(pdf, signature, 414, signY - 78, 86, 30)
   }
   if (stamp) {
-    drawImageContain(pdf, stamp, 350, signY - 88, 112, 54)
+    drawImageContain(pdf, stamp, 368, signY - 82, 52, 38)
   }
 
-  text(pdf, formatDateForPdf(doc.date), 445, signY - 8, { size: 12, align: 'center' })
+  text(pdf, formatDateForPdf(doc.date), 538, signY - 8, { size: 12, align: 'center' })
   pdf.setDrawColor(LINE)
   pdf.line(72, signY, 228, signY)
   pdf.line(238, signY, 394, signY)
-  pdf.line(367, signY, 523, signY)
-  pdf.line(533, signY, 559, signY)
+  pdf.line(367, signY, 500, signY)
+  pdf.line(510, signY, 559, signY)
   text(pdf, 'ผู้สั่งซื้อสินค้า', 150, signY + 16, { size: 12, align: 'center' })
   text(pdf, 'วันที่', 316, signY + 16, { size: 12, align: 'center' })
-  text(pdf, 'ผู้อนุมัติ', 445, signY + 16, { size: 12, align: 'center' })
-  text(pdf, 'วันที่', 546, signY + 16, { size: 12, align: 'center' })
+  text(pdf, 'ผู้อนุมัติ', 434, signY + 16, { size: 12, align: 'center' })
+  text(pdf, 'วันที่', 535, signY + 16, { size: 12, align: 'center' })
 }
 
 function drawExpenseHeader(pdf: jsPDF, { doc, tenant, contact, sellerName, metadata }: any) {
