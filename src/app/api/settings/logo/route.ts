@@ -20,25 +20,47 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const blob = await put(`company-assets/${kind}/${tenantId}-${file.name}`, file, {
-      access: 'public',
-      addRandomSuffix: false,
-    })
+    const url = await uploadCompanyAsset(tenantId, kind, file)
 
     const assetColumn = kind === 'signature'
-      ? { signatureUrl: blob.url }
+      ? { signatureUrl: url }
       : kind === 'stamp'
-      ? { stampUrl: blob.url }
-      : { logoUrl: blob.url }
+      ? { stampUrl: url }
+      : { logoUrl: url }
 
     await db.update(tenants).set({
       ...assetColumn,
       updatedAt: Math.floor(Date.now() / 1000)
     }).where(eq(tenants.id, tenantId))
 
-    return NextResponse.json({ url: blob.url })
+    return NextResponse.json({ url })
   } catch (error) {
     console.error('Logo upload error:', error)
     return new NextResponse('Upload failed', { status: 500 })
   }
+}
+
+async function uploadCompanyAsset(tenantId: string, kind: string, file: File) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN
+  const hasBlobToken = token && token !== 'your-vercel-blob-token'
+
+  if (hasBlobToken) {
+    try {
+      const blob = await put(`company-assets/${kind}/${tenantId}-${file.name}`, file, {
+        access: 'public',
+        addRandomSuffix: true,
+      })
+      return blob.url
+    } catch (error) {
+      console.error('Vercel Blob upload failed, falling back to database asset:', error)
+    }
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error('Image file is larger than 2MB')
+  }
+
+  const bytes = Buffer.from(await file.arrayBuffer())
+  const mime = file.type || 'image/png'
+  return `data:${mime};base64,${bytes.toString('base64')}`
 }

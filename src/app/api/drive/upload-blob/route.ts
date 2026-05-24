@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const result = await uploadDocumentToDrive(tenantId, doc.id, doc.docNumber, doc.docType, buffer, filename)
 
     if (!result) {
-      return new NextResponse('Drive upload failed', { status: 500 })
+      return NextResponse.json({ success: false, error: 'Google Drive is not connected or upload failed' }, { status: 422 })
     }
 
     return NextResponse.json({ success: true, url: result.webViewLink })

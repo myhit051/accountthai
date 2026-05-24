@@ -35,7 +35,8 @@ export default function DriveUploader({ docId }: { docId: string }) {
         if (uploadRes.ok) {
           router.refresh()
         } else {
-          console.error('Failed to upload blob')
+          const payload = await uploadRes.json().catch(() => null)
+          console.error(payload?.error || 'Failed to upload document to Drive')
         }
       } catch (err) {
         console.error('DriveUploader Error:', err)
