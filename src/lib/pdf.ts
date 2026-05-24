@@ -374,10 +374,10 @@ function drawQuoteTermsAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadat
   text(pdf, `ในนาม ${tenant?.name || '-'}`, 445, signY - 36, { size: 12, align: 'center' })
 
   if (signature) {
-    drawImageContain(pdf, signature, 414, signY - 78, 86, 30)
+    drawImageContain(pdf, signature, 406, signY - 76, 68, 26)
   }
   if (stamp) {
-    drawImageContain(pdf, stamp, 368, signY - 82, 52, 38)
+    drawImageContain(pdf, stamp, 374, signY - 78, 36, 30)
   }
 
   text(pdf, formatDateForPdf(doc.date), 538, signY - 8, { size: 12, align: 'center' })
