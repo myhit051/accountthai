@@ -370,26 +370,26 @@ function drawQuoteTermsAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadat
   }
 
   const customerName = contact?.name ? withBranch(contact.name, contact.branch) : ''
-  text(pdf, customerName ? `ในนาม ${customerName}` : 'ในนาม ลูกค้า', 150, signY - 36, { size: 12, align: 'center' })
-  text(pdf, `ในนาม ${tenant?.name || '-'}`, 445, signY - 36, { size: 12, align: 'center' })
+  text(pdf, customerName ? `ในนาม ${customerName}` : 'ในนาม ลูกค้า', 132, signY - 36, { size: 12, align: 'center' })
+  text(pdf, `ในนาม ${tenant?.name || '-'}`, 411, signY - 36, { size: 12, align: 'center' })
 
   if (signature) {
-    drawImageContain(pdf, signature, 406, signY - 76, 68, 26)
+    drawImageContain(pdf, signature, 383, signY - 76, 72, 24)
   }
   if (stamp) {
-    drawImageContain(pdf, stamp, 374, signY - 78, 36, 30)
+    drawImageContain(pdf, stamp, 284, signY - 84, 66, 54)
   }
 
-  text(pdf, formatDateForPdf(doc.date), 538, signY - 8, { size: 12, align: 'center' })
+  text(pdf, formatDateForPdf(doc.date), 525, signY - 8, { size: 12, align: 'center' })
   pdf.setDrawColor(LINE)
-  pdf.line(72, signY, 228, signY)
-  pdf.line(238, signY, 394, signY)
-  pdf.line(367, signY, 500, signY)
-  pdf.line(510, signY, 559, signY)
-  text(pdf, 'ผู้สั่งซื้อสินค้า', 150, signY + 16, { size: 12, align: 'center' })
-  text(pdf, 'วันที่', 316, signY + 16, { size: 12, align: 'center' })
-  text(pdf, 'ผู้อนุมัติ', 434, signY + 16, { size: 12, align: 'center' })
-  text(pdf, 'วันที่', 535, signY + 16, { size: 12, align: 'center' })
+  pdf.line(60, signY, 205, signY)
+  pdf.line(225, signY, 300, signY)
+  pdf.line(352, signY, 470, signY)
+  pdf.line(492, signY, 558, signY)
+  text(pdf, 'ผู้สั่งซื้อสินค้า', 132, signY + 16, { size: 12, align: 'center' })
+  text(pdf, 'วันที่', 262, signY + 16, { size: 12, align: 'center' })
+  text(pdf, 'ผู้อนุมัติ', 411, signY + 16, { size: 12, align: 'center' })
+  text(pdf, 'วันที่', 525, signY + 16, { size: 12, align: 'center' })
 }
 
 function drawExpenseHeader(pdf: jsPDF, { doc, tenant, contact, sellerName, metadata }: any) {
