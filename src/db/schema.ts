@@ -100,6 +100,20 @@ export const documentSequences = sqliteTable(
   })
 )
 
+// ─── Bank Accounts (Tenant payment receipt) ──────────────────────────────────
+export const bankAccounts = sqliteTable('bank_accounts', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  bankName: text('bank_name').notNull(),         // เช่น "กสิกรไทย ออมทรัพย์"
+  accountNumber: text('account_number').notNull(), // เช่น "0858085209"
+  accountName: text('account_name'),              // ชื่อบัญชี (optional)
+  isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+  sortOrder: integer('sort_order').default(0),
+  deletedAt: integer('deleted_at'),
+  createdAt: integer('created_at').default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at').default(sql`(unixepoch())`),
+})
+
 // ─── Documents ────────────────────────────────────────────────────────────────
 export const documents = sqliteTable('documents', {
   id: text('id').primaryKey(),
@@ -149,6 +163,8 @@ export type Document = typeof documents.$inferSelect
 export type NewDocument = typeof documents.$inferInsert
 export type DocumentSequence = typeof documentSequences.$inferSelect
 export type DriveIntegration = typeof driveIntegrations.$inferSelect
+export type BankAccount = typeof bankAccounts.$inferSelect
+export type NewBankAccount = typeof bankAccounts.$inferInsert
 
 export type DocType = 'INV' | 'EXP' | 'WT' | 'QT' | 'BL' | 'RE'
 export type DocStatus = 'draft' | 'issued' | 'paid' | 'void'

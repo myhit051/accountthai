@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { redirect, notFound } from 'next/navigation'
-import { getDocumentById } from '@/db/queries/documents'
+import { getDocumentById, getDocumentsByReferenceNumber, getDocumentByDocNumber } from '@/db/queries/documents'
 import { formatCurrency, formatDateThai, amountInThaiWords } from '@/lib/utils'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import { issueDocument, markDocumentPaid, duplicateDocument, convertDocument } from '@/actions/documents'
@@ -28,6 +28,11 @@ export default async function DocumentDetailPage({ params }: Props) {
   const tenantId = session.user.id
   const doc = await getDocumentById(id, tenantId)
   if (!doc) notFound()
+
+  const [sourceDoc, derivedDocs] = await Promise.all([
+    doc.referenceNumber ? getDocumentByDocNumber(doc.referenceNumber, tenantId) : Promise.resolve(null),
+    getDocumentsByReferenceNumber(doc.docNumber, tenantId),
+  ])
 
   const lineItems = JSON.parse(doc.lineItems || '[]')
   const contact = doc.contactSnapshot ? JSON.parse(doc.contactSnapshot) : null
@@ -130,7 +135,28 @@ export default async function DocumentDetailPage({ params }: Props) {
             <div className="text-sm text-gray-400 mt-1">วันที่: {formatDateThai(doc.date)}</div>
             {doc.dueDate && <div className="text-sm text-gray-400">กำหนดชำระ: {formatDateThai(doc.dueDate)}</div>}
             {doc.referenceNumber && (
-              <div className="text-sm text-gray-400 mt-1">อ้างอิง: <span className="font-mono text-blue-600">{doc.referenceNumber}</span></div>
+              <div className="text-sm text-gray-400 mt-1">
+                อ้างอิง: {sourceDoc ? (
+                  <Link href={`/documents/${sourceDoc.id}`} className="font-mono text-blue-600 hover:underline">
+                    {doc.referenceNumber}
+                  </Link>
+                ) : (
+                  <span className="font-mono text-blue-600">{doc.referenceNumber}</span>
+                )}
+              </div>
+            )}
+            {derivedDocs.length > 0 && (
+              <div className="text-sm text-gray-400 mt-1">
+                แปลงเป็น:{' '}
+                {derivedDocs.map((d, idx) => (
+                  <span key={d.id}>
+                    {idx > 0 && ', '}
+                    <Link href={`/documents/${d.id}`} className="font-mono text-blue-600 hover:underline">
+                      {d.docNumber}
+                    </Link>
+                  </span>
+                ))}
+              </div>
             )}
           </div>
 

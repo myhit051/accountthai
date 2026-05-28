@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getDocumentById } from '@/db/queries/documents'
 import { getContacts } from '@/db/queries/contacts'
+import { getBankAccounts } from '@/db/queries/bank-accounts'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import DocumentForm from '@/components/documents/DocumentForm'
 import Link from 'next/link'
@@ -25,7 +26,10 @@ export default async function EditDocumentPage({
 
   if (!doc) redirect('/documents')
 
-  const contacts = await getContacts(tenantId)
+  const [contacts, bankAccounts] = await Promise.all([
+    getContacts(tenantId),
+    getBankAccounts(tenantId),
+  ])
   const docType = doc.docType as DocType
 
   return (
@@ -42,7 +46,7 @@ export default async function EditDocumentPage({
         </div>
       </div>
 
-      <DocumentForm contacts={contacts} docType={docType} initialData={doc} />
+      <DocumentForm contacts={contacts} docType={docType} initialData={doc} bankAccounts={bankAccounts} />
     </div>
   )
 }

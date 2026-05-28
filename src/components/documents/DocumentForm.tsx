@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Contact, DocType, DOC_TYPE_LABELS } from '@/db/schema'
+import { Contact, DocType, DOC_TYPE_LABELS, BankAccount } from '@/db/schema'
 import ContactSearch from './ContactSearch'
 import { createDocument, updateDocument, LineItem } from '@/actions/documents'
 import { formatCurrency, amountInThaiWords, calculateInclusiveVat } from '@/lib/utils'
@@ -10,7 +10,10 @@ interface Props {
   contacts: Contact[]
   docType: DocType
   initialData?: any
+  bankAccounts?: BankAccount[]
 }
+
+const BANK_CUSTOM = '__custom__'
 
 function generateLineId() {
   return Math.random().toString(36).substring(2, 9)
@@ -81,10 +84,18 @@ function createLineItem(docType: DocType, category = ''): LineItem {
   }
 }
 
-export default function DocumentForm({ contacts, docType, initialData }: Props) {
+export default function DocumentForm({ contacts, docType, initialData, bankAccounts = [] }: Props) {
+  const defaultBank = bankAccounts.find(a => a.isDefault) ?? bankAccounts[0] ?? null
   const initialMetadata = initialData?.metadata
     ? { ...getDefaultMetadata(docType), ...JSON.parse(initialData.metadata) }
-    : getDefaultMetadata(docType)
+    : {
+        ...getDefaultMetadata(docType),
+        ...(defaultBank ? {
+          bankAccountId: defaultBank.id,
+          bankName: defaultBank.bankName,
+          bankAccount: defaultBank.accountNumber,
+        } : {}),
+      }
   const [selectedContact, setSelectedContact] = useState<Contact | null>(
     initialData?.contactId ? contacts.find(c => c.id === initialData.contactId) || null : null
   )
@@ -99,6 +110,31 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
   const [metadata, setMetadata] = useState<Record<string, string>>(
     initialMetadata
   )
+
+  const matchedBank = bankAccounts.find(a =>
+    metadata.bankAccountId ? a.id === metadata.bankAccountId : a.accountNumber === metadata.bankAccount,
+  )
+  const bankMode: 'preset' | 'custom' =
+    bankAccounts.length > 0 && matchedBank
+      ? 'preset'
+      : (metadata.bankName || metadata.bankAccount || bankAccounts.length === 0)
+        ? 'custom'
+        : 'preset'
+
+  function applyBankSelection(value: string) {
+    if (value === BANK_CUSTOM) {
+      setMetadata(prev => ({ ...prev, bankAccountId: '' }))
+      return
+    }
+    const picked = bankAccounts.find(a => a.id === value)
+    if (!picked) return
+    setMetadata(prev => ({
+      ...prev,
+      bankAccountId: picked.id,
+      bankName: picked.bankName,
+      bankAccount: picked.accountNumber,
+    }))
+  }
 
   const lineItemsTotal = roundMoney(lineItems.reduce((sum, item) => sum + item.amount, 0))
   const discountRate = DISCOUNT_RATE_DOC_TYPES.includes(docType) ? Math.min(Math.max(parseMoney(metadata.discountRate), 0), 100) : 0
@@ -286,14 +322,33 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
                 onChange={e => setMetadata(prev => ({ ...prev, paymentDate: e.target.value }))}
               />
             </div>
+            {bankAccounts.length > 0 && (
+              <div className="col-span-2">
+                <label className="form-label">เลือกบัญชี / ช่องทาง</label>
+                <select
+                  className="form-input"
+                  value={bankMode === 'custom' ? BANK_CUSTOM : (metadata.bankAccountId || '')}
+                  onChange={e => applyBankSelection(e.target.value)}
+                >
+                  {bankAccounts.map(account => (
+                    <option key={account.id} value={account.id}>
+                      {account.bankName} — {account.accountNumber}
+                      {account.isDefault ? ' (default)' : ''}
+                    </option>
+                  ))}
+                  <option value={BANK_CUSTOM}>อื่นๆ (กรอกเอง)</option>
+                </select>
+              </div>
+            )}
             <div>
               <label className="form-label">ธนาคาร</label>
               <input
                 type="text"
                 className="form-input"
                 value={metadata.bankName || ''}
-                onChange={e => setMetadata(prev => ({ ...prev, bankName: e.target.value }))}
+                onChange={e => setMetadata(prev => ({ ...prev, bankName: e.target.value, bankAccountId: '' }))}
                 placeholder="เช่น กสิกรไทย"
+                disabled={bankMode === 'preset' && bankAccounts.length > 0}
               />
             </div>
             <div>
@@ -302,8 +357,9 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
                 type="text"
                 className="form-input font-mono"
                 value={metadata.bankAccount || ''}
-                onChange={e => setMetadata(prev => ({ ...prev, bankAccount: e.target.value }))}
+                onChange={e => setMetadata(prev => ({ ...prev, bankAccount: e.target.value, bankAccountId: '' }))}
                 placeholder="เช่น ****-****-****-7722"
+                disabled={bankMode === 'preset' && bankAccounts.length > 0}
               />
             </div>
           </div>
@@ -453,14 +509,36 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
                 <option value="บัตรเครดิต">บัตรเครดิต</option>
               </select>
             </div>
+            {bankAccounts.length > 0 && (
+              <div className="col-span-2">
+                <label className="form-label">เลือกบัญชีรับเงิน</label>
+                <select
+                  className="form-input"
+                  value={bankMode === 'custom' ? BANK_CUSTOM : (metadata.bankAccountId || '')}
+                  onChange={e => applyBankSelection(e.target.value)}
+                >
+                  {bankAccounts.map(account => (
+                    <option key={account.id} value={account.id}>
+                      {account.bankName} — {account.accountNumber}
+                      {account.isDefault ? ' (default)' : ''}
+                    </option>
+                  ))}
+                  <option value={BANK_CUSTOM}>อื่นๆ (กรอกเอง)</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  แก้ไขรายการบัญชีได้ที่ <a href="/settings/company" className="text-blue-500 hover:underline">ตั้งค่าบริษัท</a>
+                </p>
+              </div>
+            )}
             <div>
               <label className="form-label">ธนาคาร / ประเภทบัญชี</label>
               <input
                 type="text"
                 className="form-input"
                 value={metadata.bankName || ''}
-                onChange={e => setMetadata(prev => ({ ...prev, bankName: e.target.value }))}
+                onChange={e => setMetadata(prev => ({ ...prev, bankName: e.target.value, bankAccountId: '' }))}
                 placeholder="เช่น กสิกรไทย ออมทรัพย์"
+                disabled={bankMode === 'preset' && bankAccounts.length > 0}
               />
             </div>
             <div>
@@ -469,8 +547,9 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
                 type="text"
                 className="form-input font-mono"
                 value={metadata.bankAccount || ''}
-                onChange={e => setMetadata(prev => ({ ...prev, bankAccount: e.target.value }))}
+                onChange={e => setMetadata(prev => ({ ...prev, bankAccount: e.target.value, bankAccountId: '' }))}
                 placeholder="0000000000"
+                disabled={bankMode === 'preset' && bankAccounts.length > 0}
               />
             </div>
             <div>

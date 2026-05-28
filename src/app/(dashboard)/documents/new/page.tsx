@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import { getContacts } from '@/db/queries/contacts'
+import { getBankAccounts } from '@/db/queries/bank-accounts'
 import DocumentForm from '@/components/documents/DocumentForm'
 import Link from 'next/link'
 
@@ -57,7 +58,10 @@ export default async function NewDocumentPage({
     )
   }
 
-  const contacts = await getContacts(tenantId)
+  const [contacts, bankAccounts] = await Promise.all([
+    getContacts(tenantId),
+    getBankAccounts(tenantId),
+  ])
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -73,7 +77,7 @@ export default async function NewDocumentPage({
         </div>
       </div>
 
-      <DocumentForm contacts={contacts} docType={docType} />
+      <DocumentForm contacts={contacts} docType={docType} bankAccounts={bankAccounts} />
     </div>
   )
 }

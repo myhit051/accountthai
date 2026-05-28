@@ -71,6 +71,31 @@ export async function getDocumentById(id: string, tenantId: string) {
   return rows[0] ?? null
 }
 
+export async function getDocumentsByReferenceNumber(refNumber: string, tenantId: string) {
+  return db
+    .select()
+    .from(documents)
+    .where(and(
+      eq(documents.referenceNumber, refNumber),
+      eq(documents.tenantId, tenantId),
+      eq(documents.isDeleted, false),
+    ))
+    .orderBy(desc(documents.createdAt))
+}
+
+export async function getDocumentByDocNumber(docNumber: string, tenantId: string) {
+  const rows = await db
+    .select({ id: documents.id, docType: documents.docType })
+    .from(documents)
+    .where(and(
+      eq(documents.docNumber, docNumber),
+      eq(documents.tenantId, tenantId),
+      eq(documents.isDeleted, false),
+    ))
+    .limit(1)
+  return rows[0] ?? null
+}
+
 export async function getNextDocNumber(tenantId: string, docType: DocType): Promise<string> {
   const now = new Date()
   const year = now.getFullYear()
