@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { jsPDF } from 'jspdf'
 import { getDocumentById } from '@/db/queries/documents'
+import { getDefaultBankAccount } from '@/db/queries/bank-accounts'
 import { amountInThaiWords, formatNumber, getPdfFilename } from '@/lib/utils'
 import { DOC_TYPE_LABELS, DocType, tenants, users } from '@/db/schema'
 import { db } from '@/db'
@@ -26,6 +27,7 @@ export async function generatePdfBuffer(id: string, tenantId: string): Promise<P
 
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
   const [seller] = await db.select({ name: users.name }).from(users).where(eq(users.id, tenantId)).limit(1)
+  const defaultBank = await getDefaultBankAccount(tenantId)
 
   const lineItems = parseJson<any[]>(doc.lineItems, [])
   const contact = doc.contactSnapshot ? parseJson<Record<string, any> | null>(doc.contactSnapshot, null) : null
@@ -45,6 +47,7 @@ export async function generatePdfBuffer(id: string, tenantId: string): Promise<P
     tenant,
     sellerName: metadata.sellerName || seller?.name || '',
     metadata,
+    defaultBank,
     docTypeLabel,
     logo,
     signature,
@@ -57,7 +60,7 @@ export async function generatePdfBuffer(id: string, tenantId: string): Promise<P
   return { pdf, filename, isHtml: false }
 }
 
-export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerName, metadata, docTypeLabel, logo, signature, stamp }: any): Buffer {
+export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerName, metadata, defaultBank, docTypeLabel, logo, signature, stamp }: any): Buffer {
   const pdf = new jsPDF({
     unit: 'pt',
     format: 'a4',
@@ -80,7 +83,7 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
     drawExpenseHeader(pdf, { doc, tenant, contact, sellerName, metadata })
     const afterItemsY = drawExpenseItemsTable(pdf, lineItems, metadata, 170)
     const totalsBottomY = drawExpenseTotals(pdf, doc, metadata, Math.max(afterItemsY + 20, 300), lineItems)
-    drawExpensePaymentAndSignatures(pdf, { doc, metadata, signature, stamp, startY: Math.max(totalsBottomY + 40, 640) })
+    drawExpensePaymentAndSignatures(pdf, { doc, metadata, defaultBank, signature, stamp, startY: Math.max(totalsBottomY + 40, 640) })
   } else {
     drawPageBase(pdf, doc.docType)
     drawHeader(pdf, { doc, tenant, contact, sellerName, docTypeLabel, logo })
@@ -102,6 +105,7 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
         tenant,
         contact,
         metadata,
+        defaultBank,
         signature,
         stamp,
         startY: Math.max(totalsBottomY + 24, 666),
@@ -289,7 +293,7 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [],
   }
 }
 
-function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, signature, stamp, startY }: any) {
+function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, defaultBank, signature, stamp, startY }: any) {
   let paymentY = startY
   if (paymentY > 680) {
     pdf.addPage()
@@ -297,8 +301,8 @@ function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, 
     paymentY = 104
   }
   const paymentMethod = metadata.paymentMethod || ''
-  const bankName = metadata.bankName || ''
-  const bankAccount = metadata.bankAccount || ''
+  const bankName = metadata.bankName || defaultBank?.bankName || ''
+  const bankAccount = metadata.bankAccount || defaultBank?.accountNumber || ''
   const paymentDate = metadata.paymentDate ? formatDateInput(metadata.paymentDate) : formatDateForPdf(doc.date)
   const paidAmount = numberValue(metadata.paymentAmount) || Math.max(numberValue(doc.totalAmount) - numberValue(doc.withholdingTax), 0)
 
@@ -516,7 +520,7 @@ function drawExpenseTotals(pdf: jsPDF, doc: any, metadata: Record<string, string
   }
 }
 
-function drawExpensePaymentAndSignatures(pdf: jsPDF, { doc, metadata, signature, stamp, startY }: any) {
+function drawExpensePaymentAndSignatures(pdf: jsPDF, { doc, metadata, defaultBank, signature, stamp, startY }: any) {
   let y = startY
   if (y > 665) {
     pdf.addPage()
@@ -524,8 +528,8 @@ function drawExpensePaymentAndSignatures(pdf: jsPDF, { doc, metadata, signature,
   }
 
   const paymentMethod = metadata.paymentMethod || ''
-  const bankName = metadata.bankName || ''
-  const bankAccount = metadata.bankAccount || ''
+  const bankName = metadata.bankName || defaultBank?.bankName || ''
+  const bankAccount = metadata.bankAccount || defaultBank?.accountNumber || ''
   const paymentDate = metadata.paymentDate ? formatDateInput(metadata.paymentDate) : formatDateForPdf(doc.date)
   const amountPaid = numberValue(metadata.paymentAmount) || Math.max(numberValue(doc.totalAmount) - numberValue(doc.withholdingTax), 0)
   const withholdingTax = numberValue(doc.withholdingTax)

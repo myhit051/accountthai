@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import BankAccountsManager from '@/components/settings/BankAccountsManager'
 
 interface TenantData {
   name: string
@@ -193,6 +194,10 @@ export default function CompanySettingsPage() {
           </button>
         </div>
       </form>
+
+      <div className="mt-6">
+        <BankAccountsManager />
+      </div>
     </div>
   )
 }
