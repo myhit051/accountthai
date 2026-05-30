@@ -85,6 +85,23 @@ export const contacts = sqliteTable('contacts', {
   updatedAt: integer('updated_at').default(sql`(unixepoch())`),
 })
 
+// ─── Products (Catalog) ──────────────────────────────────────────────────────
+export const products = sqliteTable('products', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  code: text('code'), // รหัสสินค้า / SKU
+  name: text('name').notNull(), // ชื่อสินค้า
+  description: text('description'), // คำอธิบาย
+  type: text('type').notNull().default('product'), // product | service
+  unit: text('unit').default('ชิ้น'), // หน่วย
+  unitPrice: real('unit_price').notNull().default(0), // ราคา/หน่วย
+  cost: real('cost'), // ต้นทุน (optional)
+  vatType: text('vat_type').notNull().default('vat'), // vat | none (ข้อมูลประกอบ ไม่เปลี่ยนการคำนวณเอกสาร)
+  deletedAt: integer('deleted_at'),
+  createdAt: integer('created_at').default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at').default(sql`(unixepoch())`),
+})
+
 // ─── Document Running Number Sequences ────────────────────────────────────────
 export const documentSequences = sqliteTable(
   'document_sequences',
@@ -145,6 +162,8 @@ export type NewTenant = typeof tenants.$inferInsert
 export type User = typeof users.$inferSelect
 export type Contact = typeof contacts.$inferSelect
 export type NewContact = typeof contacts.$inferInsert
+export type Product = typeof products.$inferSelect
+export type NewProduct = typeof products.$inferInsert
 export type Document = typeof documents.$inferSelect
 export type NewDocument = typeof documents.$inferInsert
 export type DocumentSequence = typeof documentSequences.$inferSelect

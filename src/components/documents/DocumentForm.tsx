@@ -1,16 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { Contact, DocType, DOC_TYPE_LABELS } from '@/db/schema'
+import { Contact, Product, DocType, DOC_TYPE_LABELS } from '@/db/schema'
 import ContactSearch from './ContactSearch'
+import ProductSearch from './ProductSearch'
 import { createDocument, updateDocument, LineItem } from '@/actions/documents'
 import { formatCurrency, amountInThaiWords, calculateInclusiveVat } from '@/lib/utils'
 
 interface Props {
   contacts: Contact[]
+  products?: Product[]
   docType: DocType
   initialData?: any
 }
+
+// เอกสารที่ให้เลือกสินค้าจาก dropdown (ขาย + ค่าใช้จ่าย) — ไม่รวม WT
+const PRODUCT_PICKER_DOC_TYPES: DocType[] = ['INV', 'QT', 'BL', 'RE', 'EXP']
 
 function generateLineId() {
   return Math.random().toString(36).substring(2, 9)
@@ -81,7 +86,9 @@ function createLineItem(docType: DocType, category = ''): LineItem {
   }
 }
 
-export default function DocumentForm({ contacts, docType, initialData }: Props) {
+export default function DocumentForm({ contacts, products: initialProducts = [], docType, initialData }: Props) {
+  const [products, setProducts] = useState<Product[]>(initialProducts)
+  const showProductPicker = PRODUCT_PICKER_DOC_TYPES.includes(docType)
   const initialMetadata = initialData?.metadata
     ? { ...getDefaultMetadata(docType), ...JSON.parse(initialData.metadata) }
     : getDefaultMetadata(docType)
@@ -142,6 +149,30 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
         return updated
       })
     )
+  }
+
+  // เลือกสินค้าจาก dropdown → เติม description / unit / unitPrice / productId แล้วคำนวณ amount
+  function selectProductForLine(lineId: string, product: Product) {
+    setLineItems(prev =>
+      prev.map(item => {
+        if (item.id !== lineId) return item
+        const unitPrice = product.unitPrice ?? 0
+        return {
+          ...item,
+          productId: product.id,
+          description: product.name,
+          unit: product.unit || item.unit,
+          unitPrice,
+          amount: Math.round(Number(item.quantity) * unitPrice * 100) / 100,
+        }
+      })
+    )
+  }
+
+  // สินค้าใหม่ที่เพิ่งสร้างจาก quick-add → เพิ่มเข้าคลังในหน้านี้ + เลือกให้แถวนั้นทันที
+  function handleProductCreated(lineId: string, product: Product) {
+    setProducts(prev => (prev.some(p => p.id === product.id) ? prev : [...prev, product]))
+    selectProductForLine(lineId, product)
   }
 
   function addLineItem() {
@@ -585,14 +616,24 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
               {lineItems.map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <input
-                      type="text"
-                      className="form-input text-sm py-1.5"
-                      placeholder="รายละเอียด..."
-                      value={item.description}
-                      onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
-                      required
-                    />
+                    {showProductPicker ? (
+                      <ProductSearch
+                        products={products}
+                        value={item.description}
+                        onChangeText={(text) => updateLineItem(item.id, 'description', text)}
+                        onSelect={(product) => selectProductForLine(item.id, product)}
+                        onCreated={(product) => handleProductCreated(item.id, product)}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        className="form-input text-sm py-1.5"
+                        placeholder="รายละเอียด..."
+                        value={item.description}
+                        onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
+                        required
+                      />
+                    )}
                   </td>
                   {docType === 'EXP' && (
                     <td>
