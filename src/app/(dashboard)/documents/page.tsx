@@ -5,10 +5,10 @@ import { getDocuments } from '@/db/queries/documents'
 import { formatCurrency, formatDateThai } from '@/lib/utils'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import Link from 'next/link'
-import { duplicateDocument } from '@/actions/documents'
+import { duplicateDocument, convertDocument } from '@/actions/documents'
 import DocumentStatusSelect from '@/components/documents/DocumentStatusSelect'
 import DeleteDocumentButton from '@/components/documents/DeleteDocumentButton'
-import { Copy, Download, Eye, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { Copy, Download, Eye, FileText, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 
 const STATUS_DOT_CLASS: Record<string, string> = {
   draft: 'bg-gray-300', issued: 'bg-blue-500', paid: 'bg-green-500', void: 'bg-red-500',
@@ -279,6 +279,14 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                                 คัดลอก
                               </button>
                             </form>
+                            {doc.docType === 'BL' && (doc.status === 'issued' || doc.status === 'paid') && (
+                              <form action={convertDocument.bind(null, doc.id, 'INV')}>
+                                <button type="submit" className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                                  <FileText size={15} aria-hidden="true" />
+                                  → ใบกำกับภาษี
+                                </button>
+                              </form>
+                            )}
                             {doc.status === 'draft' && (
                               <DeleteDocumentButton
                                 docId={doc.id}

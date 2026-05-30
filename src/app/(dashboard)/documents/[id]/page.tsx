@@ -88,6 +88,11 @@ export default async function DocumentDetailPage({ params }: Props) {
               <button type="submit" id="convert-to-re-btn" className="btn-secondary btn-sm">→ ใบเสร็จ</button>
             </form>
           )}
+          {doc.docType === 'BL' && (isIssued || doc.status === 'paid') && (
+            <form action={convertDocument.bind(null, doc.id, 'INV')}>
+              <button type="submit" id="convert-to-inv-btn" className="btn-secondary btn-sm">→ ใบกำกับภาษี</button>
+            </form>
+          )}
 
           {/* Issue */}
           {isDraft && (
