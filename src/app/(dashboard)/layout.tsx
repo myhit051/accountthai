@@ -34,7 +34,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="min-h-screen bg-gray-50">
         <Sidebar />
         <main className="main-content min-h-screen">
-          <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="max-w-7xl mx-auto px-4 py-5 sm:px-6 sm:py-6">
             {children}
           </div>
         </main>

@@ -52,8 +52,8 @@ export default function ContactForm({ contact }: { contact?: Contact }) {
 
   return (
     <form onSubmit={handleSubmit} className="card p-6 space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sm:col-span-2">
           <label className="form-label" htmlFor="name">ชื่อ / บริษัท *</label>
           <input id="name" name="name" className="form-input" required placeholder="ชื่อบริษัท หรือชื่อบุคคล" defaultValue={contact?.name || ''} />
         </div>
@@ -65,7 +65,7 @@ export default function ContactForm({ contact }: { contact?: Contact }) {
           <label className="form-label" htmlFor="branch">สาขา</label>
           <input id="branch" name="branch" className="form-input" placeholder="สำนักงานใหญ่" defaultValue={contact?.branch || ''} />
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="form-label" htmlFor="address">ที่อยู่</label>
           <textarea id="address" name="address" className="form-input h-20 resize-none" placeholder="ที่อยู่เต็ม..." defaultValue={contact?.address || ''} />
         </div>

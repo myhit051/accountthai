@@ -91,7 +91,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">เอกสาร</h1>
           <p className="text-gray-500 text-sm mt-0.5">จัดการเอกสารบัญชีทั้งหมด</p>
@@ -166,7 +166,17 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             <span className="text-sm text-gray-500">หน้า {page} / {pages}</span>
           )}
         </div>
-        <div className="overflow-x-auto">
+        {docs.length === 0 ? (
+          <EmptyState
+            icon="📄"
+            title="ยังไม่มีเอกสาร"
+            description="เริ่มต้นด้วยการสร้างเอกสารใบแรกของคุณ"
+            actionLabel="สร้างเอกสารแรก"
+            actionHref="/documents/new"
+          />
+        ) : (
+        <>
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[1040px] text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
@@ -195,20 +205,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {docs.length === 0 ? (
-                <tr>
-                  <td colSpan={8}>
-                    <EmptyState
-                      icon="📄"
-                      title="ยังไม่มีเอกสาร"
-                      description="เริ่มต้นด้วยการสร้างเอกสารใบแรกของคุณ"
-                      actionLabel="สร้างเอกสารแรก"
-                      actionHref="/documents/new"
-                    />
-                  </td>
-                </tr>
-              ) : (
-                docs.map(doc => {
+              {docs.map(doc => {
                   const snapshot = doc.contactSnapshot ? JSON.parse(doc.contactSnapshot) : null
                   const editHref = `/documents/${doc.id}/edit`
                   const detailHref = `/documents/${doc.id}`
@@ -299,11 +296,47 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                       </td>
                     </tr>
                   )
-                })
-              )}
+                })}
             </tbody>
           </table>
         </div>
+        {/* Mobile cards */}
+        <ul className="md:hidden divide-y divide-gray-100">
+          {docs.map(doc => {
+            const snapshot = doc.contactSnapshot ? JSON.parse(doc.contactSnapshot) : null
+            const detailHref = `/documents/${doc.id}`
+            const netTotal = Math.max(doc.totalAmount - (doc.withholdingTax || 0), 0)
+            const statusDot = DOC_STATUS_DOT_CLASS[doc.status as DocStatus] || DOC_STATUS_DOT_CLASS.draft
+            return (
+              <li key={doc.id} className="p-4 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <Link href={detailHref} className="min-w-0">
+                    <div className="flex items-center gap-2 font-mono text-gray-900">
+                      <span className={`h-2 w-2 flex-shrink-0 rounded-full ${statusDot}`} />
+                      <span className="truncate">{doc.docNumber}</span>
+                    </div>
+                    <div className="mt-0.5 text-xs text-gray-400">{DOC_TYPE_LABELS[doc.docType as DocType]}</div>
+                  </Link>
+                  <div className="whitespace-nowrap text-right font-mono text-sm font-semibold text-gray-900">
+                    {formatCurrency(netTotal)}
+                  </div>
+                </div>
+                <Link href={detailHref} className="block">
+                  <div className="truncate text-sm font-medium text-gray-900">{snapshot?.name || '—'}</div>
+                  <div className="mt-0.5 text-xs text-gray-400">
+                    {formatDateThai(doc.date)}
+                    {doc.dueDate ? ` · ครบกำหนด ${formatDateThai(doc.dueDate)}` : ''}
+                  </div>
+                </Link>
+                <div className="pt-1">
+                  <DocumentStatusSelect docId={doc.id} status={doc.status} />
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+        </>
+        )}
 
         {/* Pagination */}
         {pages > 1 && (

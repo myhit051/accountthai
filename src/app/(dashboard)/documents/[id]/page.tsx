@@ -48,7 +48,7 @@ export default async function DocumentDetailPage({ params }: Props) {
   return (
     <div className="max-w-4xl mx-auto space-y-5">
       {/* Breadcrumb + Actions */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
             <Link href="/documents" className="hover:text-gray-600">เอกสาร</Link>
@@ -147,7 +147,8 @@ export default async function DocumentDetailPage({ params }: Props) {
         {/* Line Items */}
         <div>
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">รายการ</div>
-          <table className="line-items-table w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="line-items-table w-full min-w-[480px] text-sm">
             <thead>
               <tr>
                 <th>รายการ</th>
@@ -171,10 +172,11 @@ export default async function DocumentDetailPage({ params }: Props) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Totals */}
-        <div className="ml-auto w-64 space-y-2 text-sm">
+        <div className="ml-auto w-full sm:w-64 space-y-2 text-sm">
           <div className="flex justify-between text-gray-600">
             <span>{showEnteredTotal ? 'รวมเป็นเงิน' : 'ยอดก่อนภาษี'}</span>
             <span className="font-mono">{formatCurrency(showEnteredTotal ? lineItemsTotal : doc.subtotal)}</span>

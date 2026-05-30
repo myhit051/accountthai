@@ -217,7 +217,7 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
       {docType === 'EXP' && (
         <div className="card p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">รายละเอียดค่าใช้จ่าย</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">หมวดหมู่ค่าใช้จ่ายเริ่มต้น</label>
               <select 
@@ -313,7 +313,7 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
       {docType === 'WT' && (
         <div className="card p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">รายละเอียดหัก ณ ที่จ่าย</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">แบบแสดงรายการภาษี</label>
               <select 
@@ -429,7 +429,7 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
       {PAYMENT_DOC_TYPES.includes(docType) && (
         <div className="card p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">รายละเอียดการชำระเงิน</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">ผู้ขาย</label>
               <input
@@ -519,7 +519,7 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
           <h2 className="text-sm font-semibold text-gray-700">
             {docType === 'QT' ? 'เงื่อนไขใบเสนอราคา' : 'เงื่อนไขการชำระเงิน'}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label" htmlFor="due-date">
                 {docType === 'QT' ? 'ใช้ได้ถึง' : 'วันครบกำหนด'}
@@ -567,8 +567,8 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
           )}
         </div>
 
-        <div className="line-items-table">
-          <table className="w-full">
+        <div className="line-items-table overflow-x-auto">
+          <table className="w-full min-w-[560px]">
             <thead>
               <tr>
                 <th className={docType === 'EXP' ? 'w-[28%]' : 'w-[38%]'}>รายการ <span className="text-red-500">*</span></th>

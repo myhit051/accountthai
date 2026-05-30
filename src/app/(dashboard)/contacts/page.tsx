@@ -40,10 +40,10 @@ export default async function ContactsPage() {
           <thead>
             <tr>
               <th>ชื่อ / บริษัท</th>
-              <th>เลขประจำตัวผู้เสียภาษี</th>
-              <th>ประเภท</th>
-              <th>โทรศัพท์</th>
-              <th>อีเมล</th>
+              <th className="hidden sm:table-cell">เลขประจำตัวผู้เสียภาษี</th>
+              <th className="hidden sm:table-cell">ประเภท</th>
+              <th className="hidden md:table-cell">โทรศัพท์</th>
+              <th className="hidden md:table-cell">อีเมล</th>
               <th></th>
             </tr>
           </thead>
@@ -68,10 +68,10 @@ export default async function ContactsPage() {
                   </Link>
                   {contact.address && <div className="text-xs text-gray-400 truncate max-w-[200px]">{contact.address}</div>}
                 </td>
-                <td><span className="font-mono text-sm">{contact.taxId || '—'}</span></td>
-                <td><span className="badge badge-draft">{TYPE_LABELS[contact.type] || contact.type}</span></td>
-                <td className="text-sm text-gray-500">{contact.phone || '—'}</td>
-                <td className="text-sm text-gray-500">{contact.email || '—'}</td>
+                <td className="hidden sm:table-cell"><span className="font-mono text-sm">{contact.taxId || '—'}</span></td>
+                <td className="hidden sm:table-cell"><span className="badge badge-draft">{TYPE_LABELS[contact.type] || contact.type}</span></td>
+                <td className="hidden md:table-cell text-sm text-gray-500">{contact.phone || '—'}</td>
+                <td className="hidden md:table-cell text-sm text-gray-500">{contact.email || '—'}</td>
                 <td>
                     <div className="flex gap-2">
                       <Link href={`/contacts/${contact.id}/edit`} className="text-xs text-gray-400 hover:text-blue-600">แก้ไข</Link>
