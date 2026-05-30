@@ -21,6 +21,7 @@ async function getSession() {
 
 export interface LineItem {
   id: string
+  productId?: string
   description: string
   category?: string
   quantity: number
