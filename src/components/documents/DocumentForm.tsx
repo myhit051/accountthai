@@ -571,7 +571,7 @@ export default function DocumentForm({ contacts, docType, initialData }: Props) 
           <table className="w-full">
             <thead>
               <tr>
-                <th className={docType === 'EXP' ? 'w-[28%]' : 'w-[38%]'}>รายการ</th>
+                <th className={docType === 'EXP' ? 'w-[28%]' : 'w-[38%]'}>รายการ <span className="text-red-500">*</span></th>
                 {docType === 'EXP' && <th className="w-[20%]">หมวดหมู่</th>}
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[9%] text-center' : 'w-[10%] text-center'}>จำนวน</th>
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[10%]' : 'w-[12%]'}>หน่วย</th>

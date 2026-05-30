@@ -10,13 +10,7 @@ import PdfPreviewModal from '@/components/documents/PdfPreviewModal'
 import DriveUploader from '@/components/documents/DriveUploader'
 import VoidDocumentForm from '@/components/documents/VoidDocumentForm'
 import DeleteDocumentButton from '@/components/documents/DeleteDocumentButton'
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'ร่าง', issued: 'ออกแล้ว', paid: 'ชำระแล้ว', void: 'ยกเลิก',
-}
-const STATUS_CLASS: Record<string, string> = {
-  draft: 'badge-draft', issued: 'badge-issued', paid: 'badge-paid', void: 'badge-void',
-}
+import DocumentStatusSelect from '@/components/documents/DocumentStatusSelect'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -63,7 +57,7 @@ export default async function DocumentDetailPage({ params }: Props) {
           </div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">{DOC_TYPE_LABELS[doc.docType as DocType]}</h1>
-            <span className={`badge ${STATUS_CLASS[doc.status]}`}>{STATUS_LABELS[doc.status]}</span>
+            <DocumentStatusSelect docId={doc.id} status={doc.status} />
           </div>
         </div>
 

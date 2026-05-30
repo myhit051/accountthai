@@ -3,16 +3,14 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getDocuments } from '@/db/queries/documents'
 import { formatCurrency, formatDateThai } from '@/lib/utils'
-import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
+import { DOC_TYPE_LABELS, DocType, DocStatus } from '@/db/schema'
 import Link from 'next/link'
 import { duplicateDocument, convertDocument } from '@/actions/documents'
 import DocumentStatusSelect from '@/components/documents/DocumentStatusSelect'
 import DeleteDocumentButton from '@/components/documents/DeleteDocumentButton'
+import EmptyState from '@/components/ui/EmptyState'
+import { DOC_STATUS_DOT_CLASS, DOC_STATUS_LABELS, DOC_STATUS_OPTIONS } from '@/lib/doc-status'
 import { Copy, Download, Eye, FileText, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
-
-const STATUS_DOT_CLASS: Record<string, string> = {
-  draft: 'bg-gray-300', issued: 'bg-blue-500', paid: 'bg-green-500', void: 'bg-red-500',
-}
 
 const DOC_TABS = [
   { key: '', label: 'ทั้งหมด' },
@@ -26,10 +24,7 @@ const DOC_TABS = [
 
 const STATUS_TABS = [
   { key: '', label: 'แสดงทั้งหมด' },
-  { key: 'draft', label: 'ร่าง' },
-  { key: 'issued', label: 'รอดำเนินการ' },
-  { key: 'paid', label: 'เก็บเงินแล้ว' },
-  { key: 'void', label: 'ยกเลิก' },
+  ...DOC_STATUS_OPTIONS.map((s) => ({ key: s, label: DOC_STATUS_LABELS[s] })),
 ]
 
 type SearchParams = {
@@ -89,8 +84,8 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   }
 
   const SortIcon = ({ field }: { field: string }) => {
-    if (sortBy !== field) return <span className="text-white/40 ml-1 opacity-0 group-hover:opacity-100">↑↓</span>
-    return <span className="text-white ml-1">{sortDir === 'desc' ? '↓' : '↑'}</span>
+    if (sortBy !== field) return <span className="ml-1 text-gray-300 group-hover:text-gray-500">↑↓</span>
+    return <span className="ml-1 text-blue-600">{sortDir === 'desc' ? '↓' : '↑'}</span>
   }
 
   return (
@@ -101,7 +96,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           <h1 className="text-2xl font-bold text-gray-900">เอกสาร</h1>
           <p className="text-gray-500 text-sm mt-0.5">จัดการเอกสารบัญชีทั้งหมด</p>
         </div>
-        <Link href="/documents/new" id="docs-new-btn" className="btn bg-green-600 text-white hover:bg-green-700 px-5 py-2.5 focus:ring-green-500">
+        <Link href="/documents/new" id="docs-new-btn" className="btn-primary px-5 py-2.5">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           สร้างใหม่
         </Link>
@@ -173,25 +168,25 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1040px] text-sm">
-            <thead className="bg-sky-600 text-white">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
                 <th className="w-12 px-4 py-3 text-left">
-                  <input type="checkbox" aria-label="เลือกเอกสารทั้งหมด" className="h-4 w-4 rounded border-white/60 bg-white/20" />
+                  <input type="checkbox" aria-label="เลือกเอกสารทั้งหมด" className="h-4 w-4 rounded border-gray-300" />
                 </th>
                 <th className="px-4 py-3 text-left font-semibold">
-                  <Link href={createSortUrl('date')} className="group flex items-center hover:text-blue-100 transition-colors">
+                  <Link href={createSortUrl('date')} className="group flex items-center hover:text-gray-700 transition-colors">
                     วันที่ <SortIcon field="date" />
                   </Link>
                 </th>
                 <th className="px-4 py-3 text-left font-semibold">
-                  <Link href={createSortUrl('docNumber')} className="group flex items-center hover:text-blue-100 transition-colors">
+                  <Link href={createSortUrl('docNumber')} className="group flex items-center hover:text-gray-700 transition-colors">
                     เลขที่เอกสาร <SortIcon field="docNumber" />
                   </Link>
                 </th>
                 <th className="px-4 py-3 text-left font-semibold">ชื่อลูกค้า/ชื่อโปรเจ็ค</th>
                 <th className="px-4 py-3 text-left font-semibold">วันครบกำหนด</th>
                 <th className="px-4 py-3 text-right font-semibold">
-                  <Link href={createSortUrl('amount')} className="group flex items-center justify-end hover:text-blue-100 transition-colors">
+                  <Link href={createSortUrl('amount')} className="group flex items-center justify-end hover:text-gray-700 transition-colors">
                     ยอดรวมสุทธิ <SortIcon field="amount" />
                   </Link>
                 </th>
@@ -202,12 +197,14 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             <tbody className="divide-y divide-gray-100">
               {docs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-gray-400 py-12">
-                    <div className="space-y-3">
-                      <div className="text-4xl">📄</div>
-                      <div>ยังไม่มีเอกสาร</div>
-                      <Link href="/documents/new" className="text-blue-600 hover:underline text-sm">สร้างเอกสารแรก →</Link>
-                    </div>
+                  <td colSpan={8}>
+                    <EmptyState
+                      icon="📄"
+                      title="ยังไม่มีเอกสาร"
+                      description="เริ่มต้นด้วยการสร้างเอกสารใบแรกของคุณ"
+                      actionLabel="สร้างเอกสารแรก"
+                      actionHref="/documents/new"
+                    />
                   </td>
                 </tr>
               ) : (
@@ -216,9 +213,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                   const editHref = `/documents/${doc.id}/edit`
                   const detailHref = `/documents/${doc.id}`
                   const netTotal = Math.max(doc.totalAmount - (doc.withholdingTax || 0), 0)
-                  const statusDot = STATUS_DOT_CLASS[doc.status] || STATUS_DOT_CLASS.draft
+                  const statusDot = DOC_STATUS_DOT_CLASS[doc.status as DocStatus] || DOC_STATUS_DOT_CLASS.draft
                   return (
-                    <tr key={doc.id} className="hover:bg-sky-50/50 transition-colors">
+                    <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <input type="checkbox" aria-label={`เลือก ${doc.docNumber}`} className="h-4 w-4 rounded border-gray-300" />
                       </td>

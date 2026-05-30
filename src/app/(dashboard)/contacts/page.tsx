@@ -5,6 +5,7 @@ import { getContacts } from '@/db/queries/contacts'
 import { createContact, deleteContact } from '@/actions/contacts'
 import Link from 'next/link'
 import DeleteContactButton from '@/components/contacts/DeleteContactButton'
+import EmptyState from '@/components/ui/EmptyState'
 
 const TYPE_LABELS: Record<string, string> = {
   customer: 'ลูกค้า', vendor: 'ผู้ขาย', both: 'ลูกค้า/ผู้ขาย',
@@ -49,12 +50,14 @@ export default async function ContactsPage() {
           <tbody>
             {contacts.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center text-gray-400 py-12">
-                  <div className="space-y-3">
-                    <div className="text-4xl">👥</div>
-                    <div>ยังไม่มีผู้ติดต่อ</div>
-                    <Link href="/contacts/new" className="text-blue-600 hover:underline text-sm">เพิ่มผู้ติดต่อแรก →</Link>
-                  </div>
+                <td colSpan={6}>
+                  <EmptyState
+                    icon="👥"
+                    title="ยังไม่มีผู้ติดต่อ"
+                    description="เพิ่มลูกค้าหรือผู้ขายเพื่อเริ่มออกเอกสาร"
+                    actionLabel="เพิ่มผู้ติดต่อแรก"
+                    actionHref="/contacts/new"
+                  />
                 </td>
               </tr>
             ) : contacts.map(contact => (
