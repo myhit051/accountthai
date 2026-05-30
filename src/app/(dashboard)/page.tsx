@@ -6,13 +6,7 @@ import { formatCurrency, formatDateThai } from '@/lib/utils'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import DocTypeChart from '@/components/documents/DocTypeChart'
 import Link from 'next/link'
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'ร่าง', issued: 'ออกแล้ว', paid: 'ชำระแล้ว', void: 'ยกเลิก',
-}
-const STATUS_CLASS: Record<string, string> = {
-  draft: 'badge-draft', issued: 'badge-issued', paid: 'badge-paid', void: 'badge-void',
-}
+import { DOC_STATUS_BADGE_CLASS, DOC_STATUS_LABELS, normalizeStatus } from '@/lib/doc-status'
 
 const THAI_MONTHS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 
@@ -174,8 +168,8 @@ export default async function DashboardPage({
                         {formatCurrency(doc.totalAmount)}
                       </td>
                       <td>
-                        <span className={`badge ${STATUS_CLASS[doc.status] || 'badge-draft'}`}>
-                          {STATUS_LABELS[doc.status] || doc.status}
+                        <span className={`badge ${DOC_STATUS_BADGE_CLASS[normalizeStatus(doc.status)]}`}>
+                          {DOC_STATUS_LABELS[normalizeStatus(doc.status)]}
                         </span>
                       </td>
                       <td className="text-xs text-gray-500">

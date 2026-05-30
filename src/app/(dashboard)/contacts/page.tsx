@@ -5,6 +5,7 @@ import { getContacts } from '@/db/queries/contacts'
 import { createContact, deleteContact } from '@/actions/contacts'
 import Link from 'next/link'
 import DeleteContactButton from '@/components/contacts/DeleteContactButton'
+import EmptyState from '@/components/ui/EmptyState'
 
 const TYPE_LABELS: Record<string, string> = {
   customer: 'ลูกค้า', vendor: 'ผู้ขาย', both: 'ลูกค้า/ผู้ขาย',
@@ -39,22 +40,24 @@ export default async function ContactsPage() {
           <thead>
             <tr>
               <th>ชื่อ / บริษัท</th>
-              <th>เลขประจำตัวผู้เสียภาษี</th>
-              <th>ประเภท</th>
-              <th>โทรศัพท์</th>
-              <th>อีเมล</th>
+              <th className="hidden sm:table-cell">เลขประจำตัวผู้เสียภาษี</th>
+              <th className="hidden sm:table-cell">ประเภท</th>
+              <th className="hidden md:table-cell">โทรศัพท์</th>
+              <th className="hidden md:table-cell">อีเมล</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {contacts.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center text-gray-400 py-12">
-                  <div className="space-y-3">
-                    <div className="text-4xl">👥</div>
-                    <div>ยังไม่มีผู้ติดต่อ</div>
-                    <Link href="/contacts/new" className="text-blue-600 hover:underline text-sm">เพิ่มผู้ติดต่อแรก →</Link>
-                  </div>
+                <td colSpan={6}>
+                  <EmptyState
+                    icon="👥"
+                    title="ยังไม่มีผู้ติดต่อ"
+                    description="เพิ่มลูกค้าหรือผู้ขายเพื่อเริ่มออกเอกสาร"
+                    actionLabel="เพิ่มผู้ติดต่อแรก"
+                    actionHref="/contacts/new"
+                  />
                 </td>
               </tr>
             ) : contacts.map(contact => (
@@ -65,10 +68,10 @@ export default async function ContactsPage() {
                   </Link>
                   {contact.address && <div className="text-xs text-gray-400 truncate max-w-[200px]">{contact.address}</div>}
                 </td>
-                <td><span className="font-mono text-sm">{contact.taxId || '—'}</span></td>
-                <td><span className="badge badge-draft">{TYPE_LABELS[contact.type] || contact.type}</span></td>
-                <td className="text-sm text-gray-500">{contact.phone || '—'}</td>
-                <td className="text-sm text-gray-500">{contact.email || '—'}</td>
+                <td className="hidden sm:table-cell"><span className="font-mono text-sm">{contact.taxId || '—'}</span></td>
+                <td className="hidden sm:table-cell"><span className="badge badge-draft">{TYPE_LABELS[contact.type] || contact.type}</span></td>
+                <td className="hidden md:table-cell text-sm text-gray-500">{contact.phone || '—'}</td>
+                <td className="hidden md:table-cell text-sm text-gray-500">{contact.email || '—'}</td>
                 <td>
                     <div className="flex gap-2">
                       <Link href={`/contacts/${contact.id}/edit`} className="text-xs text-gray-400 hover:text-blue-600">แก้ไข</Link>

@@ -156,8 +156,8 @@ export default function CompanySettingsPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="card p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
             <label className="form-label" htmlFor="company-name">ชื่อบริษัท *</label>
             <input id="company-name" name="name" className="form-input" required placeholder="บริษัท ตัวอย่าง จำกัด" defaultValue={tenant?.name || ''} />
           </div>
@@ -169,7 +169,7 @@ export default function CompanySettingsPage() {
             <label className="form-label" htmlFor="company-branch">สาขา</label>
             <input id="company-branch" name="branch" className="form-input" placeholder="สำนักงานใหญ่" defaultValue={tenant?.branch || 'สำนักงานใหญ่'} />
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className="form-label" htmlFor="company-address">ที่อยู่</label>
             <textarea id="company-address" name="address" className="form-input h-24 resize-none" placeholder="ที่อยู่ของบริษัท..." defaultValue={tenant?.address || ''} />
           </div>

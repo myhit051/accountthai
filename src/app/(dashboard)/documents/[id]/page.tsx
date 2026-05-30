@@ -10,13 +10,7 @@ import PdfPreviewModal from '@/components/documents/PdfPreviewModal'
 import DriveUploader from '@/components/documents/DriveUploader'
 import VoidDocumentForm from '@/components/documents/VoidDocumentForm'
 import DeleteDocumentButton from '@/components/documents/DeleteDocumentButton'
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'ร่าง', issued: 'ออกแล้ว', paid: 'ชำระแล้ว', void: 'ยกเลิก',
-}
-const STATUS_CLASS: Record<string, string> = {
-  draft: 'badge-draft', issued: 'badge-issued', paid: 'badge-paid', void: 'badge-void',
-}
+import DocumentStatusSelect from '@/components/documents/DocumentStatusSelect'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -54,7 +48,7 @@ export default async function DocumentDetailPage({ params }: Props) {
   return (
     <div className="max-w-4xl mx-auto space-y-5">
       {/* Breadcrumb + Actions */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
             <Link href="/documents" className="hover:text-gray-600">เอกสาร</Link>
@@ -63,7 +57,7 @@ export default async function DocumentDetailPage({ params }: Props) {
           </div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">{DOC_TYPE_LABELS[doc.docType as DocType]}</h1>
-            <span className={`badge ${STATUS_CLASS[doc.status]}`}>{STATUS_LABELS[doc.status]}</span>
+            <DocumentStatusSelect docId={doc.id} status={doc.status} />
           </div>
         </div>
 
@@ -153,7 +147,8 @@ export default async function DocumentDetailPage({ params }: Props) {
         {/* Line Items */}
         <div>
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">รายการ</div>
-          <table className="line-items-table w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="line-items-table w-full min-w-[480px] text-sm">
             <thead>
               <tr>
                 <th>รายการ</th>
@@ -177,10 +172,11 @@ export default async function DocumentDetailPage({ params }: Props) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Totals */}
-        <div className="ml-auto w-64 space-y-2 text-sm">
+        <div className="ml-auto w-full sm:w-64 space-y-2 text-sm">
           <div className="flex justify-between text-gray-600">
             <span>{showEnteredTotal ? 'รวมเป็นเงิน' : 'ยอดก่อนภาษี'}</span>
             <span className="font-mono">{formatCurrency(showEnteredTotal ? lineItemsTotal : doc.subtotal)}</span>

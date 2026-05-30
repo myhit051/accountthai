@@ -27,7 +27,7 @@ export default async function SettingsPage() {
           <Link href="/settings/company" className="btn-secondary btn-sm">แก้ไข</Link>
         </div>
         {tenant ? (
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             {[
               { label: 'ชื่อบริษัท', value: tenant.name },
               { label: 'เลขประจำตัวผู้เสียภาษี', value: tenant.taxId || '—' },
