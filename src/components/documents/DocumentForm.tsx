@@ -6,6 +6,8 @@ import ContactSearch from './ContactSearch'
 import ProductSearch from './ProductSearch'
 import { createDocument, updateDocument, LineItem } from '@/actions/documents'
 import { formatCurrency, amountInThaiWords, calculateInclusiveVat } from '@/lib/utils'
+import { Save, X } from 'lucide-react'
+import Link from 'next/link'
 
 interface Props {
   contacts: Contact[]
@@ -227,6 +229,41 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="sticky top-4 z-20 rounded-lg border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-gray-900">
+              {initialData ? `แก้ไข${DOC_TYPE_LABELS[docType]}` : `สร้าง${DOC_TYPE_LABELS[docType]}`}
+            </div>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+              <span>{initialData?.docNumber || 'เลขที่จะถูกกำหนดอัตโนมัติ'}</span>
+              <span>ยอดสุทธิ</span>
+              <span className="font-mono text-base font-bold text-blue-600">
+                {formatCurrency(shouldCalculateWithholdingTax ? netPayable : totalAmount)}
+              </span>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/documents" className="btn-secondary">
+              <X size={16} aria-hidden="true" />
+              ปิดหน้าต่าง
+            </Link>
+            <button
+              id="save-draft-toolbar"
+              type="submit"
+              disabled={isSubmitting || lineItems.some(i => !i.description)}
+              className="btn-primary"
+            >
+              {isSubmitting ? (
+                <><div className="spinner w-4 h-4" /> กำลังบันทึก...</>
+              ) : (
+                <><Save size={16} aria-hidden="true" /> บันทึกแบบร่าง</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Contact */}
       <div className="card p-5 space-y-4">
         <h2 className="text-sm font-semibold text-gray-700">ข้อมูลผู้ติดต่อ / คู่ค้า</h2>

@@ -64,7 +64,7 @@ export default async function NewDocumentPage({
   ])
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/documents/new" className="text-gray-400 hover:text-gray-600">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15,18 9,12 15,6"/></svg>
