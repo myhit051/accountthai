@@ -108,8 +108,8 @@ export default async function DashboardPage({
       {/* Quick start */}
       <div className="card overflow-hidden">
         <div className="flex flex-col lg:flex-row">
-          <div className="border-b border-sky-100 bg-sky-50/80 p-5 lg:w-72 lg:border-b-0 lg:border-r">
-            <div className="text-xs font-semibold text-sky-700">เริ่มต้นใช้งาน AccountThai</div>
+          <div className="border-b border-blue-100 bg-blue-50/80 p-5 lg:w-72 lg:border-b-0 lg:border-r">
+            <div className="text-xs font-semibold text-blue-700">เริ่มต้นใช้งาน AccountThai</div>
             <div className="mt-1 text-2xl font-bold text-gray-900">{completedQuickStart}/{quickStartSteps.length}</div>
             <p className="mt-1 text-sm text-gray-500">
               ทำขั้นตอนหลักให้ครบเพื่อให้เอกสารและรายงานพร้อมใช้งานจริง
@@ -122,20 +122,20 @@ export default async function DashboardPage({
                 <Link
                   key={step.href}
                   href={step.href}
-                  className="group flex min-h-36 flex-col justify-between p-5 transition-colors hover:bg-sky-50/60"
+                  className="group flex min-h-36 flex-col justify-between p-5 transition-colors hover:bg-blue-50/60"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-sky-600 shadow-sm ring-1 ring-gray-100">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm ring-1 ring-gray-100">
                       <Icon size={18} aria-hidden="true" />
                     </span>
                     {step.complete ? (
                       <CheckCircle2 className="text-green-500" size={18} aria-label="เสร็จแล้ว" />
                     ) : (
-                      <Circle className="text-gray-300 group-hover:text-sky-400" size={18} aria-label="ยังไม่เสร็จ" />
+                      <Circle className="text-gray-300 group-hover:text-blue-400" size={18} aria-label="ยังไม่เสร็จ" />
                     )}
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900 group-hover:text-sky-700">{step.label}</div>
+                    <div className="font-semibold text-gray-900 group-hover:text-blue-700">{step.label}</div>
                     <p className="mt-1 text-sm leading-5 text-gray-500">{step.description}</p>
                   </div>
                 </Link>

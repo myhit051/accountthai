@@ -11,7 +11,7 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 const TYPE_DOT_CLASS: Record<string, string> = {
-  customer: 'bg-sky-500',
+  customer: 'bg-blue-500',
   vendor: 'bg-amber-400',
   both: 'bg-lime-500',
 }
@@ -92,7 +92,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
                   href={createUrl({ type: tab.key || undefined })}
                   className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-sky-600 text-white'
+                      ? 'bg-blue-600 text-white'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
@@ -123,7 +123,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
-            <thead className="bg-sky-600 text-white">
+            <thead className="bg-blue-600 text-white">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">รายชื่อ</th>
                 <th className="px-4 py-3 text-left font-semibold">เลขประจำตัวผู้เสียภาษี</th>
@@ -145,7 +145,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
                 </td>
                 </tr>
               ) : filteredContacts.map(contact => (
-                <tr key={contact.id} className="hover:bg-sky-50/50 transition-colors">
+                <tr key={contact.id} className="hover:bg-blue-50/50 transition-colors">
                   <td className="px-4 py-3">
                     <Link href={`/contacts/${contact.id}`} className="flex items-start gap-3 font-medium text-gray-900 hover:text-blue-700">
                       <span className={`mt-2 h-2 w-2 rounded-full ${TYPE_DOT_CLASS[contact.type] || 'bg-gray-300'}`} />

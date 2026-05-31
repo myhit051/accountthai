@@ -8,6 +8,7 @@ import DeleteContactButton from './DeleteContactButton'
 export default function ContactRowActions({ contactId, contactName }: { contactId: string; contactName: string }) {
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -18,6 +19,9 @@ export default function ContactRowActions({ contactId, contactName }: { contactI
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
     }
+
+    // Move focus into the menu when it opens (keyboard accessibility)
+    menuRef.current?.querySelector<HTMLElement>('a, button')?.focus()
 
     document.addEventListener('mousedown', handlePointer)
     document.addEventListener('touchstart', handlePointer)
@@ -37,12 +41,13 @@ export default function ContactRowActions({ contactId, contactName }: { contactI
         aria-expanded={open}
         aria-label={`เมนูผู้ติดต่อ ${contactName}`}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
       >
         <MoreHorizontal size={18} aria-hidden="true" />
       </button>
       {open && (
         <div
+          ref={menuRef}
           role="menu"
           className="absolute right-0 z-30 mt-2 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 text-left shadow-lg"
         >
@@ -50,12 +55,12 @@ export default function ContactRowActions({ contactId, contactName }: { contactI
             href={`/contacts/${contactId}/edit`}
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none"
+            className="flex min-h-11 items-center gap-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none"
           >
             <Pencil size={15} aria-hidden="true" />
             แก้ไข
           </Link>
-          <div role="menuitem" className="px-3 py-2 hover:bg-red-50">
+          <div className="flex min-h-11 items-center px-3 py-2.5 hover:bg-red-50">
             <DeleteContactButton id={contactId} name={contactName} />
           </div>
         </div>

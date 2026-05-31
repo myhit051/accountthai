@@ -85,7 +85,7 @@ export default function ContactForm({ contact }: { contact?: Contact }) {
         <div className="space-y-5">
           <section className="card p-5">
             <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-              <Building2 size={18} className="text-sky-600" aria-hidden="true" />
+              <Building2 size={18} className="text-blue-600" aria-hidden="true" />
               <h2 className="text-sm font-semibold text-gray-800">ข้อมูลผู้ติดต่อ</h2>
             </div>
 
@@ -102,9 +102,9 @@ export default function ContactForm({ contact }: { contact?: Contact }) {
                         defaultChecked={defaultType === option.value}
                         className="peer sr-only"
                       />
-                      <span className="block rounded-lg border border-gray-200 p-3 transition-colors hover:border-gray-300 peer-checked:border-sky-500 peer-checked:bg-sky-50 peer-checked:text-sky-700 peer-focus-visible:ring-2 peer-focus-visible:ring-sky-500 peer-focus-visible:ring-offset-2">
+                      <span className="block rounded-lg border border-gray-200 p-3 transition-colors hover:border-gray-300 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2">
                         <span className="block text-sm font-semibold">{option.label}</span>
-                        <span className="mt-0.5 block text-xs text-gray-500 peer-checked:text-sky-600">{option.description}</span>
+                        <span className="mt-0.5 block text-xs text-gray-500 peer-checked:text-blue-600">{option.description}</span>
                       </span>
                     </label>
                   ))}
@@ -138,7 +138,7 @@ export default function ContactForm({ contact }: { contact?: Contact }) {
         <div className="space-y-5">
           <section className="card p-5">
             <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-              <UserRound size={18} className="text-sky-600" aria-hidden="true" />
+              <UserRound size={18} className="text-blue-600" aria-hidden="true" />
               <h2 className="text-sm font-semibold text-gray-800">รายละเอียดผู้ติดต่อ</h2>
             </div>
 
@@ -162,7 +162,7 @@ export default function ContactForm({ contact }: { contact?: Contact }) {
 
           <section className="card p-5">
             <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-              <FileText size={18} className="text-sky-600" aria-hidden="true" />
+              <FileText size={18} className="text-blue-600" aria-hidden="true" />
               <h2 className="text-sm font-semibold text-gray-800">นำไปใช้กับเอกสาร</h2>
             </div>
 
