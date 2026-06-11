@@ -65,8 +65,9 @@ pull_rebase() {
   fi
 }
 
+# หมายเหตุ: vercel CLI พิมพ์ตารางลง stderr เวลา non-TTY — ต้อง 2>&1
 current_prod_url() {
-  vercel ls --yes 2>/dev/null | awk '$6 == "Production" { print $3; exit }'
+  vercel ls --prod --yes 2>&1 | awk '$6 == "Production" { print $3; exit }'
 }
 
 case "$MODE" in
@@ -135,7 +136,7 @@ case "$MODE" in
     say "รอ production deployment ใหม่ (timeout 6 นาที)…"
     DEADLINE=$(( $(date +%s) + 360 ))
     while true; do
-      ROW=$(vercel ls --yes 2>/dev/null | awk '$6 == "Production" { print $3" "$5; exit }' || true)
+      ROW=$(vercel ls --prod --yes 2>&1 | awk '$6 == "Production" { print $3" "$5; exit }' || true)
       URL=${ROW%% *}; STATE=${ROW##* }
       if [[ -n "$URL" && "$URL" != "$PROD_BEFORE" && "$STATE" == "Ready" ]]; then
         ok "production พร้อมแล้ว: $URL"; break
