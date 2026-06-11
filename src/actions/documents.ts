@@ -28,6 +28,7 @@ export interface LineItem {
   unit: string
   unitPrice: number
   taxRate?: number
+  incomeCategoryCode?: string
   amount: number
 }
 

@@ -6,6 +6,8 @@ import ContactSearch from './ContactSearch'
 import ProductSearch from './ProductSearch'
 import { createDocument, updateDocument, LineItem } from '@/actions/documents'
 import { formatCurrency, amountInThaiWords, calculateInclusiveVat } from '@/lib/utils'
+import { Save, X } from 'lucide-react'
+import Link from 'next/link'
 
 interface Props {
   contacts: Contact[]
@@ -227,6 +229,41 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="sticky top-4 z-20 rounded-lg border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-gray-900">
+              {initialData ? `แก้ไข${DOC_TYPE_LABELS[docType]}` : `สร้าง${DOC_TYPE_LABELS[docType]}`}
+            </div>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+              <span>{initialData?.docNumber || 'เลขที่จะถูกกำหนดอัตโนมัติ'}</span>
+              <span>ยอดสุทธิ</span>
+              <span className="font-mono text-base font-bold text-blue-600">
+                {formatCurrency(shouldCalculateWithholdingTax ? netPayable : totalAmount)}
+              </span>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/documents" className="btn-secondary">
+              <X size={16} aria-hidden="true" />
+              ปิดหน้าต่าง
+            </Link>
+            <button
+              id="save-draft-toolbar"
+              type="submit"
+              disabled={isSubmitting || lineItems.some(i => !i.description)}
+              className="btn-primary"
+            >
+              {isSubmitting ? (
+                <><div className="spinner w-4 h-4" /> กำลังบันทึก...</>
+              ) : (
+                <><Save size={16} aria-hidden="true" /> บันทึกแบบร่าง</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Contact */}
       <div className="card p-5 space-y-4">
         <h2 className="text-sm font-semibold text-gray-700">ข้อมูลผู้ติดต่อ / คู่ค้า</h2>
@@ -607,6 +644,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[9%] text-center' : 'w-[10%] text-center'}>จำนวน</th>
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[10%]' : 'w-[12%]'}>หน่วย</th>
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[16%] text-right' : 'w-[18%] text-right'}>ราคา/หน่วย</th>
+                {docType === 'WT' && <th className="w-[12%] text-center">หมวดเงินได้</th>}
                 {docType === 'WT' && <th className="w-[10%] text-center">ภาษี %</th>}
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[13%] text-right' : 'w-[16%] text-right'}>จำนวนเงิน</th>
                 <th className={docType === 'EXP' ? 'w-[4%]' : 'w-[6%]'}></th>
@@ -677,6 +715,22 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                       onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                     />
                   </td>
+                  {docType === 'WT' && (
+                    <td>
+                      <select
+                        className="form-input text-sm py-1.5"
+                        value={item.incomeCategoryCode || metadata.incomeCategoryCode || '5'}
+                        onChange={(e) => updateLineItem(item.id, 'incomeCategoryCode', e.target.value)}
+                      >
+                        <option value="1">1. เงินเดือน</option>
+                        <option value="2">2. ค่าธรรมเนียม</option>
+                        <option value="3">3. ค่าลิขสิทธิ์</option>
+                        <option value="4">4. ดอกเบี้ย/ปันผล</option>
+                        <option value="5">5. ค่าบริการ ฯลฯ</option>
+                        <option value="6">6. อื่นๆ</option>
+                      </select>
+                    </td>
+                  )}
                   {docType === 'WT' && (
                     <td>
                       <input

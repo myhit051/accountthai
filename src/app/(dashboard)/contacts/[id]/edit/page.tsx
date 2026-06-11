@@ -15,8 +15,11 @@ export default async function EditContactPage({ params }: Props) {
   if (!contact || contact.deletedAt) notFound()
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">แก้ไขผู้ติดต่อ</h1>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">แก้ไขผู้ติดต่อ</h1>
+        <p className="text-gray-500 text-sm mt-0.5">{contact.name}</p>
+      </div>
       <ContactForm contact={contact} />
     </div>
   )

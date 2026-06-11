@@ -1,12 +1,13 @@
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { getDashboardStats, getRecentDocuments } from '@/db/queries/dashboard'
+import { getDashboardStats, getRecentDocuments, getContactCount, getCompanyProfileStatus, hasDriveConnected } from '@/db/queries/dashboard'
 import { formatCurrency, formatDateThai } from '@/lib/utils'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import DocTypeChart from '@/components/documents/DocTypeChart'
 import Link from 'next/link'
 import { DOC_STATUS_BADGE_CLASS, DOC_STATUS_LABELS, normalizeStatus } from '@/lib/doc-status'
+import { Building2, CheckCircle2, Circle, Cloud, FileText, Users } from 'lucide-react'
 
 const THAI_MONTHS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 
@@ -24,10 +25,45 @@ export default async function DashboardPage({
   const year = parseInt(resolvedParams.year || String(now.getFullYear()))
   const month = parseInt(resolvedParams.month || String(now.getMonth() + 1))
 
-  const [stats, recentDocs] = await Promise.all([
+  const [stats, recentDocs, contactCount, companyProfile, driveConnected] = await Promise.all([
     getDashboardStats(tenantId, year, month),
     getRecentDocuments(tenantId, 5),
+    getContactCount(tenantId),
+    getCompanyProfileStatus(tenantId),
+    hasDriveConnected(tenantId),
   ])
+
+  const quickStartSteps = [
+    {
+      label: 'ตั้งค่าบริษัท',
+      description: 'กรอกเลขภาษี ที่อยู่ โลโก้ และข้อมูลเอกสาร',
+      href: '/settings/company',
+      complete: companyProfile.isComplete,
+      icon: Building2,
+    },
+    {
+      label: 'เพิ่มผู้ติดต่อ',
+      description: 'เตรียมรายชื่อลูกค้าและผู้ขายไว้ใช้ออกเอกสาร',
+      href: '/contacts',
+      complete: contactCount > 0,
+      icon: Users,
+    },
+    {
+      label: 'สร้างเอกสารแรก',
+      description: 'ออกใบเสนอราคา ใบกำกับภาษี หรือค่าใช้จ่าย',
+      href: '/documents/new',
+      complete: stats.docCount > 0,
+      icon: FileText,
+    },
+    {
+      label: 'เชื่อมต่อ Google Drive',
+      description: 'สำรองสำเนา PDF อัตโนมัติเข้าโฟลเดอร์ที่กำหนด',
+      href: '/settings',
+      complete: driveConnected,
+      icon: Cloud,
+    },
+  ]
+  const completedQuickStart = quickStartSteps.filter((step) => step.complete).length
 
   // Month navigation
   const prevDate = new Date(year, month - 2, 1)
@@ -67,6 +103,46 @@ export default async function DashboardPage({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9,18 15,12 9,6"/></svg>
           </a>
         )}
+      </div>
+
+      {/* Quick start */}
+      <div className="card overflow-hidden">
+        <div className="flex flex-col lg:flex-row">
+          <div className="border-b border-blue-100 bg-blue-50/80 p-5 lg:w-72 lg:border-b-0 lg:border-r">
+            <div className="text-xs font-semibold text-blue-700">เริ่มต้นใช้งาน AccountThai</div>
+            <div className="mt-1 text-2xl font-bold text-gray-900">{completedQuickStart}/{quickStartSteps.length}</div>
+            <p className="mt-1 text-sm text-gray-500">
+              ทำขั้นตอนหลักให้ครบเพื่อให้เอกสารและรายงานพร้อมใช้งานจริง
+            </p>
+          </div>
+          <div className="grid flex-1 grid-cols-1 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+            {quickStartSteps.map((step) => {
+              const Icon = step.icon
+              return (
+                <Link
+                  key={step.href}
+                  href={step.href}
+                  className="group flex min-h-36 flex-col justify-between p-5 transition-colors hover:bg-blue-50/60"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm ring-1 ring-gray-100">
+                      <Icon size={18} aria-hidden="true" />
+                    </span>
+                    {step.complete ? (
+                      <CheckCircle2 className="text-green-500" size={18} aria-label="เสร็จแล้ว" />
+                    ) : (
+                      <Circle className="text-gray-300 group-hover:text-blue-400" size={18} aria-label="ยังไม่เสร็จ" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900 group-hover:text-blue-700">{step.label}</div>
+                    <p className="mt-1 text-sm leading-5 text-gray-500">{step.description}</p>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Metric Cards */}

@@ -1,5 +1,5 @@
 import { db } from '@/db'
-import { documents, contacts } from '@/db/schema'
+import { documents, contacts, tenants, driveIntegrations } from '@/db/schema'
 import { and, eq, gte, lte, count, sum, desc } from 'drizzle-orm'
 
 export async function getDashboardStats(tenantId: string, year: number, month: number) {
@@ -78,4 +78,26 @@ export async function getContactCount(tenantId: string) {
     .from(contacts)
     .where(and(eq(contacts.tenantId, tenantId)))
   return result[0]?.count ?? 0
+}
+
+export async function getCompanyProfileStatus(tenantId: string) {
+  const [tenant] = await db
+    .select({ taxId: tenants.taxId, address: tenants.address })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1)
+  return {
+    hasTaxId: Boolean(tenant?.taxId?.trim()),
+    hasAddress: Boolean(tenant?.address?.trim()),
+    isComplete: Boolean(tenant?.taxId?.trim() && tenant?.address?.trim()),
+  }
+}
+
+export async function hasDriveConnected(tenantId: string) {
+  const [row] = await db
+    .select({ accessToken: driveIntegrations.accessToken })
+    .from(driveIntegrations)
+    .where(eq(driveIntegrations.tenantId, tenantId))
+    .limit(1)
+  return Boolean(row?.accessToken)
 }

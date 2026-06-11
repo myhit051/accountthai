@@ -97,6 +97,11 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
         startY: Math.max(totalsBottomY + 24, 640),
       })
     } else {
+      let notesBottomY = totalsBottomY
+      if (doc.notes) {
+        text(pdf, 'หมายเหตุ', 36, totalsBottomY + 36, { size: 12, color: BLUE, style: 'bold' })
+        notesBottomY = wrappedText(pdf, doc.notes, 36, totalsBottomY + 52, 350, { size: 12, lineHeight: 14 })
+      }
       drawPaymentAndSignatures(pdf, {
         doc,
         tenant,
@@ -104,7 +109,7 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
         metadata,
         signature,
         stamp,
-        startY: Math.max(totalsBottomY + 24, 666),
+        startY: Math.max(notesBottomY + 24, 666),
       })
     }
   }
@@ -168,6 +173,11 @@ function drawHeader(pdf: jsPDF, { doc, tenant, contact, sellerName, docTypeLabel
   if (doc.dueDate) {
     text(pdf, getDueDateLabel(doc.docType), 318, infoY + 51, { size: 12, color: accent, style: 'bold' })
     text(pdf, formatDateForPdf(doc.dueDate), 402, infoY + 51, { size: 12 })
+  }
+  if (contact?.phone) {
+    const phoneY = (doc.dueDate ? 176 : 158) + 18
+    text(pdf, 'เบอร์โทร', 318, phoneY, { size: 12, color: accent, style: 'bold' })
+    text(pdf, contact.phone, 402, phoneY, { size: 12 })
   }
 
   text(pdf, getCounterpartyLabel(doc.docType), 36, 182, { size: 13, color: accent, style: 'bold' })
@@ -266,6 +276,9 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [],
     row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
   }
 
+  const amountWords = `(${amountInThaiWords(totalAmount)})`
+  wrappedText(pdf, amountWords, 36, Math.max(startY + 58, y), 270, { size: 12, lineHeight: 14 })
+
   if (withholdingTax > 0) {
     const withholdingRate = numberValue(metadata.withholdingTaxRate) || (subtotal > 0 ? Math.round((withholdingTax / subtotal) * 10000) / 100 : 0)
     y += 13
@@ -275,10 +288,6 @@ function drawTotals(pdf: jsPDF, doc: any, startY: number, lineItems: any[] = [],
     row(`หักภาษี ณ ที่จ่าย ${formatRate(withholdingRate)}%`, withholdingTax, false)
     row('ยอดชำระ', netPayable, true)
   }
-
-  const amountForWords = withholdingTax > 0 ? netPayable : totalAmount
-  const amountWords = `(${amountInThaiWords(amountForWords)})`
-  wrappedText(pdf, amountWords, 36, Math.max(startY + 58, y - 18), 270, { size: 12, lineHeight: 14 })
 
   return y
 
@@ -323,7 +332,7 @@ function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, 
   pdf.setDrawColor(LINE)
   pdf.line(36, rowY + 4, 559, rowY + 4)
 
-  const payerName = contact?.name ? withBranch(contact.name, contact.branch) : ''
+  const payerName = contact?.name || ''
   const receiverName = tenant?.name || ''
   text(pdf, `ในนาม ${payerName || '-'}`, 36, rowY + 35, { size: 12 })
   text(pdf, `ในนาม ${receiverName || '-'}`, 420, rowY + 35, { size: 12, align: 'center' })
@@ -332,7 +341,7 @@ function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, 
     drawImage(pdf, signature, 366, rowY + 59, 88, 38)
   }
   if (stamp) {
-    drawImageContain(pdf, stamp, 420, rowY + 48, 76, 58)
+    drawImageContain(pdf, stamp, 250, rowY + 46, 95, 56)
   }
 
   const dateY = rowY + 100
@@ -419,7 +428,7 @@ function drawExpenseHeader(pdf: jsPDF, { doc, tenant, contact, sellerName, metad
   text(pdf, preparerName, valueX, 124, { size: 12 })
 
   text(pdf, 'ผู้จำหน่าย/Vendor:', 36, 145, { size: 12, color: BLUE, style: 'bold' })
-  text(pdf, contact?.name || '-', 36, 160, { size: 12.5 })
+  text(pdf, contact?.name ? withBranch(contact.name, contact.branch) : '-', 36, 160, { size: 12.5 })
 }
 
 function drawExpenseItemsTable(pdf: jsPDF, lineItems: any[], metadata: Record<string, string>, startY: number) {
@@ -502,7 +511,7 @@ function drawExpenseTotals(pdf: jsPDF, doc: any, metadata: Record<string, string
     if (vatAmount > 0) row(`ภาษีมูลค่าเพิ่ม ${formatRate(vatRate)}%`, vatAmount, false)
     row('ราคาไม่รวมภาษีมูลค่าเพิ่ม', subtotal, false)
   } else {
-    if (vatAmount > 0) row(`ภาษีมูลค่าเพิ่ม ${formatRate(vatRate)}%`, vatAmount, false)
+    row(`ภาษีมูลค่าเพิ่ม ${formatRate(vatRate)}%`, vatAmount, false)
     row('จำนวนเงินรวมทั้งสิ้น', totalAmount, true)
   }
 
@@ -639,6 +648,8 @@ function drawWithholdingTaxCertificate(pdf: jsPDF, { doc, lineItems, contact, te
   text(pdf, 'ลำดับที่', marginX + 18, formY + 14, { size: 11, style: 'bold' })
   pdf.rect(marginX + 58, formY + 6, 66, 19)
   text(pdf, metadata.sequenceNumber || '', marginX + 91, formY + 20, { size: 10, align: 'center' })
+  text(pdf, '(ให้สามารถอ้างอิงหรือสอบยันกันได้ระหว่างลำดับที่ตาม', marginX + 16, formY + 33, { size: 6.5 })
+  text(pdf, 'หนังสือรับรองฯ กับแบบยื่นรายการภาษีหักที่จ่าย)', marginX + 16, formY + 41, { size: 6.5 })
   text(pdf, 'ในแบบ', marginX + 130, formY + 14, { size: 11 })
   const forms = ['ภ.ง.ด.1ก', 'ภ.ง.ด.1ก พิเศษ', 'ภ.ง.ด.2', 'ภ.ง.ด.3', 'ภ.ง.ด.2ก', 'ภ.ง.ด.3ก', 'ภ.ง.ด.53']
   forms.forEach((form, index) => {
@@ -669,51 +680,87 @@ function drawWithholdingTaxCertificate(pdf: jsPDF, { doc, lineItems, contact, te
   text(pdf, `(${amountInThaiWords(withholdingTax)})`, marginX + 172, summaryY + 16, { size: 11 })
 
   roundedBox(pdf, marginX + 12, summaryY + 28, width - 24, 22, 3)
-  text(pdf, 'เงินที่จ่ายเข้า กบข./กสจ./กองทุนสงเคราะห์ครูโรงเรียนเอกชน........................บาท', marginX + 18, summaryY + 43, { size: 9.5 })
-  text(pdf, 'กองทุนประกันสังคม........................บาท', marginX + 328, summaryY + 43, { size: 9.5 })
+  text(pdf, 'เงินที่จ่ายเข้า กบข./กสจ./กองทุนสงเคราะห์ครูโรงเรียนเอกชน...............บาท', marginX + 18, summaryY + 43, { size: 9 })
+  text(pdf, 'กองทุนประกันสังคม...............บาท', marginX + 272, summaryY + 43, { size: 9 })
+  text(pdf, 'กองทุนสำรองเลี้ยงชีพ...............บาท', marginX + 398, summaryY + 43, { size: 9 })
 
   const conditionY = summaryY + 54
   roundedBox(pdf, marginX + 12, conditionY, width - 24, 22, 3)
   text(pdf, 'ผู้ที่จ่ายเงิน', marginX + 18, conditionY + 15, { size: 11, style: 'bold' })
   const conditions = ['หัก ณ ที่จ่าย', 'ออกให้ตลอดไป', 'ออกให้ครั้งเดียว', 'อื่นๆ']
+  const conditionXs = [78, 168, 262, 358]
   conditions.forEach((condition, index) => {
-    const x = marginX + 78 + index * 96
+    const x = marginX + conditionXs[index]
     drawCheckbox(pdf, x, conditionY + 5, (metadata.payerTaxCondition || 'หัก ณ ที่จ่าย') === condition)
-    text(pdf, `(${index + 1}) ${condition}`, x + 18, conditionY + 15, { size: 10.5 })
+    const label = condition === 'อื่นๆ' ? `(${index + 1}) อื่นๆ (ระบุ)` : `(${index + 1}) ${condition}`
+    text(pdf, label, x + 18, conditionY + 15, { size: 10.5 })
   })
+  dottedLine(pdf, marginX + 432, conditionY + 15, marginX + 521)
 
   const certifyY = conditionY + 28
   roundedBox(pdf, marginX + 12, certifyY, 138, 96, 3)
   text(pdf, 'คำเตือน', marginX + 18, certifyY + 16, { size: 11, style: 'bold' })
-  wrappedText(pdf, 'ผู้มีหน้าที่ออกหนังสือรับรองการหักภาษี ณ ที่จ่าย ฝ่าฝืนไม่ปฏิบัติตามมาตรา 50 ทวิ ต้องรับโทษทางอาญา', marginX + 50, certifyY + 16, 86, { size: 9.5, lineHeight: 12 })
+  wrappedText(pdf, 'ผู้มีหน้าที่ออกหนังสือรับรองการหักภาษี ณ ที่จ่าย ฝ่าฝืนไม่ปฏิบัติตามมาตรา 50 ทวิ แห่งประมวลรัษฎากร ต้องรับโทษทางอาญา ตามมาตรา 35 แห่งประมวลรัษฎากร', marginX + 50, certifyY + 16, 90, { size: 9, lineHeight: 11 })
 
   roundedBox(pdf, marginX + 154, certifyY, width - 178, 96, 3)
   text(pdf, 'ขอรับรองว่าข้อความและตัวเลขดังกล่าวข้างต้นถูกต้องตรงกับความจริงทุกประการ', 370, certifyY + 18, { size: 11, align: 'center' })
   if (signature) drawImage(pdf, signature, 286, certifyY + 40, 76, 30)
-  if (stamp) drawImageContain(pdf, stamp, 350, certifyY + 28, 86, 52)
+  if (stamp) drawImageContain(pdf, stamp, 450, certifyY + 20, 86, 48)
   text(pdf, 'ลงชื่อ', 212, certifyY + 66, { size: 11 })
   dottedLine(pdf, 238, certifyY + 66, 456)
   text(pdf, 'ผู้จ่ายเงิน', 462, certifyY + 66, { size: 11 })
   drawCertificateDate(pdf, certificateDate, 310, certifyY + 82)
 
   text(pdf, 'หมายเหตุ  เลขประจำตัวผู้เสียภาษีอากร (13 หลัก)* หมายถึง 1. กรณีบุคคลธรรมดาไทย ให้ใช้เลขประจำตัวประชาชนของกรมการปกครอง', marginX + 2, 800, { size: 8.5, style: 'bold' })
-  text(pdf, '2. กรณีนิติบุคคล ให้ใช้เลขทะเบียนนิติบุคคลของกรมพัฒนาธุรกิจการค้า   3. กรณีอื่นๆ ให้ใช้เลขประจำตัวผู้เสียภาษีอากรของกรมสรรพากร', marginX + 124, 814, { size: 8.5 })
+  text(pdf, '2. กรณีนิติบุคคล ให้ใช้เลขทะเบียนนิติบุคคลของกรมพัฒนาธุรกิจการค้า   3. กรณีอื่นๆ นอกเหนือจาก 1. และ 2. ให้ใช้เลขประจำตัวผู้เสียภาษีอากร (13 หลัก) ของกรมสรรพากร', marginX + 124, 814, { size: 8.5 })
   pdf.setLineWidth(0.2)
 }
 
 function drawPartyBox(pdf: jsPDF, { x, y, width, title, name, taxId, secondaryTaxId, address }: any) {
   roundedBox(pdf, x, y, width, 62, 3)
-  text(pdf, title, x + 6, y + 16, { size: 11, style: 'bold' })
-  text(pdf, 'เลขประจำตัวผู้เสียภาษีอากร (13หลัก)*', x + 326, y + 16, { size: 10.5, style: 'bold' })
-  drawTaxIdBoxes(pdf, taxId, x + 326, y + 22)
-  text(pdf, 'ชื่อ', x + 6, y + 37, { size: 11, style: 'bold' })
-  dottedLine(pdf, x + 22, y + 37, x + 322)
-  text(pdf, name || '-', x + 26, y + 35, { size: 11 })
-  text(pdf, 'ที่อยู่', x + 6, y + 55, { size: 11, style: 'bold' })
-  dottedLine(pdf, x + 28, y + 55, x + width - 6)
-  text(pdf, address || '-', x + 32, y + 53, { size: 10.5 })
-  void secondaryTaxId
+  text(pdf, title, x + 6, y + 15, { size: 11, style: 'bold' })
+  text(pdf, 'เลขประจำตัวผู้เสียภาษีอากร (13หลัก)*', x + 170, y + 15, { size: 10, style: 'bold' })
+  drawTaxIdBoxes(pdf, taxId, x + 316, y + 4)
+  text(pdf, 'ชื่อ', x + 6, y + 32, { size: 11, style: 'bold' })
+  dottedLine(pdf, x + 22, y + 32, x + 310)
+  text(pdf, name || '-', x + 26, y + 30, { size: 11 })
+  text(pdf, '(ให้ระบุว่าเป็น บุคคล นิติบุคคล บริษัท สมาคม หรือคณะบุคคล)', x + 22, y + 40, { size: 6.5 })
+  text(pdf, 'เลขประจำตัวผู้เสียภาษีอากร', x + 316, y + 34, { size: 8.5, style: 'bold' })
+  drawCompactTaxBoxes(pdf, secondaryTaxId || '', x + 402, y + 24)
+  text(pdf, 'ที่อยู่', x + 6, y + 52, { size: 11, style: 'bold' })
+  dottedLine(pdf, x + 28, y + 52, x + width - 6)
+  text(pdf, address || '-', x + 32, y + 50, { size: 10.5 })
+  text(pdf, '(ให้ระบุ ชื่ออาคาร/หมู่บ้าน ห้องเลขที่ ชั้นที่ เลขที่ ตรอก/ซอย หมู่ที่ ถนน ตำบล/แขวง อำเภอ/เขต จังหวัด)', x + 28, y + 60, { size: 6.5 })
 }
+
+// รายการประเภทเงินได้ตามฟอร์ม 50 ทวิ ฉบับเต็มของกรมสรรพากร
+// cat = บรรทัดหลัก (anchor) สำหรับวางตัวเลขของหมวดเงินได้ 1-6
+const WT_INCOME_LINES: { text: string; cat?: string }[] = [
+  { text: '1. เงินเดือน ค่าจ้าง เบี้ยเลี้ยง โบนัส ฯลฯ ตามมาตรา 40 (1)', cat: '1' },
+  { text: '2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ ตามมาตรา 40 (2)', cat: '2' },
+  { text: '3. ค่าแห่งลิขสิทธิ์ ฯลฯ ตามมาตรา 40 (3)', cat: '3' },
+  { text: '4. (ก) ดอกเบี้ย ฯลฯ ตามมาตรา 40 (4)(ก)', cat: '4' },
+  { text: '    (ข) เงินปันผล เงินส่วนแบ่งกำไร ฯลฯ ตามมาตรา 40 (4)(ข)' },
+  { text: '         (1) กรณีผู้ได้รับเงินปันผลได้รับเครดิตภาษี โดยจ่ายจากกำไรสุทธิของ' },
+  { text: '              กิจการที่ต้องเสียภาษีเงินได้นิติบุคคลในอัตรา ดังนี้' },
+  { text: '              (1.1) อัตราร้อยละ 30 ของกำไรสุทธิ' },
+  { text: '              (1.2) อัตราร้อยละ 25 ของกำไรสุทธิ' },
+  { text: '              (1.3) อัตราร้อยละ 20 ของกำไรสุทธิ' },
+  { text: '              (1.4) อัตราอื่นๆ (ระบุ) ....................ของกำไรสุทธิ' },
+  { text: '         (2) กรณีผู้ได้รับเงินปันผลไม่ได้รับเครดิตภาษีเนื่องจากจ่ายจาก' },
+  { text: '              (2.1) กำไรสุทธิของกิจการที่ได้รับยกเว้นภาษีเงินได้นิติบุคคล' },
+  { text: '              (2.2) เงินปันผลหรือส่วนแบ่งของกำไรที่ได้รับยกเว้นไม่ต้องนำมารวม' },
+  { text: '                     คำนวณเป็นรายได้เพื่อเสียภาษีเงินได้นิติบุคคล' },
+  { text: '              (2.3) กำไรสุทธิที่ได้หักผลขาดทุนสุทธิยกมาไม่เกิน 5 ปีก่อนรอบระยะ' },
+  { text: '                     เวลาบัญชีปีปัจจุบัน' },
+  { text: '              (2.4) กำไรที่รับรู้ทางบัญชีโดยวิธีส่วนได้เสีย (equity method)' },
+  { text: '              (2.5) อื่นๆ (ระบุ) ..........................................................................' },
+  { text: '5. การจ่ายเงินได้ที่ต้องหักภาษี ณ ที่จ่ายตามคำสั่งกรมสรรพากรที่ออกตาม' },
+  { text: 'มาตรา 3 เตรส เช่น รางวัล ส่วนลดหรือประโยชน์ใดๆ เนื่องจากการส่งเสริมการ' },
+  { text: 'ขาย รางวัลในการประกวด การแข่งขัน การชิงโชค ค่าแสดงของนักแสดงสาธารณะ' },
+  { text: 'ค่าจ้างทำของ ค่าโฆษณา ค่าเช่า ค่าขนส่ง ค่าบริการ ค่าเบี้ยประกันวินาศภัย ฯลฯ', cat: '5' },
+  { text: '6. อื่นๆ (ระบุ) ...............................................................................................', cat: '6' },
+]
 
 function drawWithholdingIncomeTable(pdf: jsPDF, { x, y, width, lineItems, metadata, paymentDate, subtotal, withholdingTax, incomeCategoryCode }: any) {
   const descW = 282
@@ -721,17 +768,9 @@ function drawWithholdingIncomeTable(pdf: jsPDF, { x, y, width, lineItems, metada
   const amountW = 84
   const taxW = width - descW - dateW - amountW
   const headerH = 28
-  const rowH = 23
-  const rows = [
-    '1. เงินเดือน ค่าจ้าง เบี้ยเลี้ยง โบนัส ฯลฯ ตามมาตรา 40 (1)',
-    '2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ ตามมาตรา 40 (2)',
-    '3. ค่าแห่งลิขสิทธิ์ ฯลฯ ตามมาตรา 40 (3)',
-    '4. ดอกเบี้ย เงินปันผล ฯลฯ ตามมาตรา 40 (4)',
-    '5. การจ่ายเงินได้ที่ต้องหักภาษี ณ ที่จ่าย เช่น ค่าจ้างทำของ ค่าโฆษณา ค่าเช่า ค่าขนส่ง ค่าบริการ ฯลฯ',
-    '6. อื่นๆ (ระบุ) ........................................................................................',
-  ]
-  const totalRows = rows.length + Math.max(lineItems.length, 1)
-  const tableH = headerH + rows.length * rowH + Math.max(lineItems.length, 1) * rowH + 24
+  const lineH = 11
+  const totalRowH = 26
+  const tableH = headerH + WT_INCOME_LINES.length * lineH + totalRowH
   const defaultTaxRate = numberValue(metadata.taxRate)
 
   roundedBox(pdf, x, y, width, tableH, 3)
@@ -747,44 +786,65 @@ function drawWithholdingIncomeTable(pdf: jsPDF, { x, y, width, lineItems, metada
   text(pdf, 'ภาษีที่หัก', x + descW + dateW + amountW + taxW / 2, y + 12, { size: 10, align: 'center', style: 'bold' })
   text(pdf, 'และนำส่งไว้', x + descW + dateW + amountW + taxW / 2, y + 24, { size: 10, align: 'center', style: 'bold' })
 
-  let rowY = y + headerH
-  rows.forEach((row, index) => {
-    wrappedText(pdf, row, x + 6, rowY + 14, descW - 12, { size: 10.5, lineHeight: 11 })
-    dottedLine(pdf, x + descW, rowY + rowH - 5, x + width)
-    if (String(index + 1) === String(incomeCategoryCode) && lineItems.length === 0) {
-      drawWithholdingIncomeValues(pdf, { x, rowY, descW, dateW, amountW, taxW, paymentDate, amount: subtotal, tax: withholdingTax })
-    }
-    rowY += rowH
+  // จับคู่รายการจ่ายเข้ากับบรรทัดหมวดเงินได้ในฟอร์ม (ล้นหมวดแล้วไหลลงบรรทัดถัดไป)
+  const anchorByCat: Record<string, number> = {}
+  WT_INCOME_LINES.forEach((line, index) => {
+    if (line.cat) anchorByCat[line.cat] = index
   })
 
-  const sourceItems = lineItems.length > 0 ? lineItems : [{ description: metadata.incomeType || '', amount: subtotal }]
+  const slots: ({ date: string; amount: number; tax: number } | null)[] = new Array(WT_INCOME_LINES.length).fill(null)
+  const sourceItems = lineItems.length > 0
+    ? lineItems
+    : [{ description: metadata.incomeType || '', amount: subtotal, incomeCategoryCode }]
+  let othersLabel = ''
+
   sourceItems.forEach((item: any) => {
     const amount = numberValue(item.amount)
-    const tax = item.taxRate !== undefined
+    const tax = item.taxRate !== undefined && item.taxRate !== ''
       ? Math.round(amount * numberValue(item.taxRate)) / 100
-      : subtotal > 0
+      : lineItems.length > 0 && subtotal > 0
       ? Math.round((amount / subtotal) * withholdingTax * 100) / 100
-      : Math.round(amount * defaultTaxRate) / 100
-    text(pdf, item.description || metadata.incomeType || '', x + 18, rowY + 15, { size: 10.5 })
-    drawWithholdingIncomeValues(pdf, { x, rowY, descW, dateW, amountW, taxW, paymentDate, amount, tax })
-    dottedLine(pdf, x + descW, rowY + rowH - 5, x + width)
-    rowY += rowH
+      : withholdingTax || Math.round(amount * defaultTaxRate) / 100
+    const cat = String(item.incomeCategoryCode || incomeCategoryCode || '5')
+    let slotIndex = anchorByCat[cat] ?? anchorByCat['5']
+    while (slotIndex < slots.length && slots[slotIndex]) slotIndex += 1
+    if (slotIndex >= slots.length) slotIndex = slots.length - 1
+    slots[slotIndex] = {
+      date: item.paymentDate ? formatDateInput(item.paymentDate) : paymentDate,
+      amount,
+      tax,
+    }
+    if (cat === '6') {
+      const label = item.description || metadata.incomeType || ''
+      if (label) othersLabel = othersLabel ? `${othersLabel}, ${label}` : label
+    }
   })
 
-  pdf.line(x, rowY, x + width, rowY)
-  text(pdf, 'รวมเงินที่จ่ายและภาษีที่หักนำส่ง', x + descW + dateW - 4, rowY + 16, { size: 11, align: 'right', style: 'bold' })
-  text(pdf, money(subtotal), x + descW + dateW + amountW - 4, rowY + 16, { size: 12, align: 'right' })
-  text(pdf, money(withholdingTax), x + width - 4, rowY + 16, { size: 12, align: 'right' })
+  let lineY = y + headerH + 10
+  WT_INCOME_LINES.forEach((line, index) => {
+    text(pdf, line.text, x + 6, lineY, { size: 9 })
+    if (line.cat === '6' && othersLabel) {
+      text(pdf, othersLabel, x + 64, lineY - 1, { size: 9 })
+    }
+    dottedLine(pdf, x + descW + 4, lineY + 2, x + descW + dateW - 4)
+    dottedLine(pdf, x + descW + dateW + 4, lineY + 2, x + descW + dateW + amountW - 4)
+    dottedLine(pdf, x + descW + dateW + amountW + 4, lineY + 2, x + width - 4)
+    const slot = slots[index]
+    if (slot) {
+      text(pdf, slot.date, x + descW + dateW - 5, lineY, { size: 9.5, align: 'right' })
+      text(pdf, money(slot.amount), x + descW + dateW + amountW - 5, lineY, { size: 9.5, align: 'right' })
+      text(pdf, money(slot.tax), x + width - 5, lineY, { size: 9.5, align: 'right' })
+    }
+    lineY += lineH
+  })
 
-  // Keep linter honest for table height reasoning.
-  void totalRows
+  const totalY = y + headerH + WT_INCOME_LINES.length * lineH
+  pdf.line(x, totalY, x + width, totalY)
+  text(pdf, 'รวมเงินที่จ่ายและภาษีที่หักนำส่ง', x + descW + dateW - 4, totalY + 17, { size: 11, align: 'right', style: 'bold' })
+  text(pdf, money(subtotal), x + descW + dateW + amountW - 4, totalY + 17, { size: 12, align: 'right' })
+  text(pdf, money(withholdingTax), x + width - 4, totalY + 17, { size: 12, align: 'right' })
+
   return y + tableH
-}
-
-function drawWithholdingIncomeValues(pdf: jsPDF, { x, rowY, descW, dateW, amountW, paymentDate, amount, tax }: any) {
-  text(pdf, paymentDate, x + descW + dateW - 5, rowY + 15, { size: 10.5, align: 'right' })
-  text(pdf, money(amount), x + descW + dateW + amountW - 5, rowY + 15, { size: 10.5, align: 'right' })
-  text(pdf, money(tax), x + descW + dateW + amountW + 66, rowY + 15, { size: 10.5, align: 'right' })
 }
 
 function drawCheckbox(pdf: jsPDF, x: number, y: number, checked: boolean) {
@@ -841,7 +901,7 @@ function drawCompactTaxBoxes(pdf: jsPDF, taxId: string, x: number, y: number) {
 }
 
 function drawCertificateDate(pdf: jsPDF, dateValue: string, x: number, y: number) {
-  const [day, month, year] = dateValue.split('/')
+  const [day, month, year] = dateValue.split('/').map((part) => part.replace(/^0+(?=\d)/, ''))
   text(pdf, day || '', x - 34, y, { size: 10, align: 'center' })
   text(pdf, month || '', x, y, { size: 10, align: 'center' })
   text(pdf, year || '', x + 40, y, { size: 10, align: 'center' })
