@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOut } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
+import { CURRENT_VERSION } from '@/lib/version'
 import GlobalSearch from './GlobalSearch'
 
 const navItems = [
@@ -160,6 +161,24 @@ export default function Sidebar() {
             ))}
           </div>
         </nav>
+
+        {/* Version / Changelog */}
+        <div className="px-3 pb-1">
+          <Link
+            href="/changelog"
+            className={cn(
+              'flex items-center gap-2 px-3 py-2 rounded-xl text-xs transition-all',
+              isActive('/changelog') ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+            )}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            เวอร์ชัน {CURRENT_VERSION} · มีอะไรใหม่
+          </Link>
+        </div>
 
         {/* Sign out */}
         <div className="px-3 py-3 border-t border-gray-100">

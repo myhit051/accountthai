@@ -19,7 +19,20 @@ scripts/deploy.sh check
 ```
 ไม่แก้อะไรเลย รายงาน: branch, ไฟล์ค้าง commit/untracked, ahead/behind origin/main, typecheck, schema เปลี่ยนหรือไม่ และแผนว่า ship จะทำอะไร **เล่าแผนให้ผู้ใช้ฟังเป็นภาษาไทย** ถ้า typecheck แดง หยุดแล้วแก้ก่อน — อย่า ship ข้ามมัน
 
-### 2. ตรวจของที่กำลังจะขึ้น — แล้วจัดการเอง 2 อย่างที่ script ทำให้ไม่ได้
+### 2. Changelog — gate บังคับ; ตรวจ commit ที่*ติดมากับ pull* ด้วย ไม่ใช่แค่ที่แก้เอง
+script ตัดสินไม่ได้ว่าการเปลี่ยนแปลงไหน "ลูกค้าเห็น" — **เราต้องตัดสินเอง** working tree สะอาดไม่ได้แปลว่าไม่ต้องมี changelog: ship ที่ pull งานของคนอื่นเข้ามาก็พกการเปลี่ยนแปลงของเขามาด้วย
+
+การเปลี่ยนแปลง**ลูกค้าเห็น** (→ ต้องมี entry) ถ้าแตะ: `src/app/(dashboard)/`, `src/components/`, การ render PDF ใน `src/lib/pdf.ts` Infra/tooling/docs/สคริปต์ล้วนๆ → **ไม่ต้อง** (แต่บอกผู้ใช้ตรงๆ ว่าข้าม)
+
+เพิ่ม entry ใน `src/lib/version.ts` ตามกติกาหัวไฟล์:
+- entry ใหม่สุดอยู่**บนสุด**ของ `CHANGELOG`; `CURRENT_VERSION` อัปเดตตัวเอง
+- bump semver จากตัวบนสุด: มี `new`/`improved` → minor, มีแต่ `fixed` → patch
+- รวมทุกการเปลี่ยนแปลงที่ยังไม่ปล่อยเป็น entry **เวอร์ชันเดียว** (ไม่ใช่หนึ่งเวอร์ชันต่อ commit)
+- เขียน `text` เป็น**ภาษาไทยแบบลูกค้าอ่าน** — เน้นประโยชน์ ไม่ใช้ศัพท์ภายใน (แสดงบนหน้า /changelog)
+
+ทำ**ก่อน** commit ship เพื่อให้ changelog ติดไปกับ push เดียวกัน
+
+### 3. ตรวจของที่กำลังจะขึ้น — แล้วจัดการเอง 2 อย่างที่ script ทำให้ไม่ได้
 - **ไฟล์ untracked**: script จะ commit เฉพาะไฟล์ tracked (`git add -u`) — ไฟล์ใหม่ต้อง `git add <path>` เองก่อน ระวังอย่า add ไฟล์ลับ (`.env*`, `ตัวอย่างเอกสาร/` อยู่ใน .gitignore แล้ว แต่เช็คซ้ำ)
 - **schema เปลี่ยนแบบ destructive**: ถ้า `src/db/schema.ts` มีการลบ/เปลี่ยนชนิดคอลัมน์ `drizzle-kit push` อาจถามยืนยันหรือทำข้อมูลหาย — เปิด diff ดูเองก่อน (`git diff origin/main -- src/db/schema.ts`) ถ้าเป็นแค่เพิ่มตาราง/คอลัมน์ ปล่อยให้ script รันได้เลย
 
@@ -28,17 +41,18 @@ scripts/deploy.sh check
 git log --oneline origin/main..HEAD
 ```
 
-### 3. Ship
+### 4. Ship
 ```
 COMMIT_MSG="ข้อความ commit ตรงกับ diff" scripts/deploy.sh ship --yes
 ```
 รันเฉพาะที่จำเป็น: pull --rebase → typecheck → build → db:push (ถ้า schema เปลี่ยน — **ก่อน**โค้ดขึ้น prod เสมอ) → commit → push → เปิด/merge PR เข้า main → รอ production deployment Ready (poll `vercel ls`) → บันทึก `docs/DEPLOYS.md` ถ้าอยู่บน `main` อยู่แล้วจะ push ตรงโดยไม่เปิด PR
 
-### 4. รายงานผล — **ตอบกลับเป็นภาษาไทยเสมอ**
+### 5. รายงานผล — **ตอบกลับเป็นภาษาไทยเสมอ**
 สรุปให้ผู้ใช้: อะไรขึ้น prod จริง vs ถูกข้าม, commit sha / PR number, schema push หรือไม่, URL production ที่ Ready แล้ว และทุกอย่างที่ script `warn` ไว้ (ศัพท์เทคนิค/SHA/path เป็นอังกฤษได้ คำอธิบายเป็นไทย)
 
 ## กฎ
 - **Check ก่อน ship ทุกครั้ง** — กัน drift (เช่น schema ที่ยังไม่ push ทำให้โค้ดใหม่พังบน prod)
+- **ห้าม ship การเปลี่ยนแปลงที่ลูกค้าเห็นโดยไม่มี changelog entry** — และ "ลูกค้าเห็น" รวมถึง commit ที่แค่ *pull เข้ามา* (งานของคนอื่น) ไม่ใช่แค่โค้ดที่เราเขียนเอง
 - **DB ก่อนโค้ดเสมอ** — script บังคับลำดับ db:push → merge ให้แล้ว อย่า merge เองข้าม script
 - **อย่ารันขั้นตอนย่อยเองแทน script** — นั่นคือสาเหตุที่ขั้นตอนหล่นหาย ลงมือ manual เฉพาะตอน script ล้มแล้วบอกสาเหตุที่มันแก้เองไม่ได้
 - **ห้าม commit ไฟล์ลับ** — `.env.vercel.prod` และ `ตัวอย่างเอกสาร/` ถูก ignore แล้ว ถ้าเจอไฟล์ลับใหม่ใน untracked ให้เพิ่ม .gitignore ก่อน
