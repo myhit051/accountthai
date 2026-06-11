@@ -29,6 +29,10 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.vercel.prod
+
+# เอกสารตัวอย่างจริงของธุรกิจ (ใช้เทียบ layout เฉพาะในเครื่อง)
+/ตัวอย่างเอกสาร/
 
 # vercel
 .vercel
