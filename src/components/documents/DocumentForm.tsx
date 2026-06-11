@@ -644,6 +644,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[9%] text-center' : 'w-[10%] text-center'}>จำนวน</th>
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[10%]' : 'w-[12%]'}>หน่วย</th>
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[16%] text-right' : 'w-[18%] text-right'}>ราคา/หน่วย</th>
+                {docType === 'WT' && <th className="w-[12%] text-center">หมวดเงินได้</th>}
                 {docType === 'WT' && <th className="w-[10%] text-center">ภาษี %</th>}
                 <th className={docType === 'EXP' || docType === 'WT' ? 'w-[13%] text-right' : 'w-[16%] text-right'}>จำนวนเงิน</th>
                 <th className={docType === 'EXP' ? 'w-[4%]' : 'w-[6%]'}></th>
@@ -714,6 +715,22 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                       onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                     />
                   </td>
+                  {docType === 'WT' && (
+                    <td>
+                      <select
+                        className="form-input text-sm py-1.5"
+                        value={item.incomeCategoryCode || metadata.incomeCategoryCode || '5'}
+                        onChange={(e) => updateLineItem(item.id, 'incomeCategoryCode', e.target.value)}
+                      >
+                        <option value="1">1. เงินเดือน</option>
+                        <option value="2">2. ค่าธรรมเนียม</option>
+                        <option value="3">3. ค่าลิขสิทธิ์</option>
+                        <option value="4">4. ดอกเบี้ย/ปันผล</option>
+                        <option value="5">5. ค่าบริการ ฯลฯ</option>
+                        <option value="6">6. อื่นๆ</option>
+                      </select>
+                    </td>
+                  )}
                   {docType === 'WT' && (
                     <td>
                       <input
