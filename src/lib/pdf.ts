@@ -341,7 +341,7 @@ function drawPaymentAndSignatures(pdf: jsPDF, { doc, tenant, contact, metadata, 
     drawImage(pdf, signature, 366, rowY + 59, 88, 38)
   }
   if (stamp) {
-    drawImageContain(pdf, stamp, 420, rowY + 48, 76, 58)
+    drawImageContain(pdf, stamp, 250, rowY + 46, 95, 56)
   }
 
   const dateY = rowY + 100
@@ -705,7 +705,7 @@ function drawWithholdingTaxCertificate(pdf: jsPDF, { doc, lineItems, contact, te
   roundedBox(pdf, marginX + 154, certifyY, width - 178, 96, 3)
   text(pdf, 'ขอรับรองว่าข้อความและตัวเลขดังกล่าวข้างต้นถูกต้องตรงกับความจริงทุกประการ', 370, certifyY + 18, { size: 11, align: 'center' })
   if (signature) drawImage(pdf, signature, 286, certifyY + 40, 76, 30)
-  if (stamp) drawImageContain(pdf, stamp, 350, certifyY + 28, 86, 52)
+  if (stamp) drawImageContain(pdf, stamp, 450, certifyY + 20, 86, 48)
   text(pdf, 'ลงชื่อ', 212, certifyY + 66, { size: 11 })
   dottedLine(pdf, 238, certifyY + 66, 456)
   text(pdf, 'ผู้จ่ายเงิน', 462, certifyY + 66, { size: 11 })

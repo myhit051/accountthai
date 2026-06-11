@@ -14,6 +14,14 @@ const tenant = {
 const outDir = '/tmp/pdf-test'
 fs.mkdirSync(outDir, { recursive: true })
 
+// รูปจำลองสำหรับเช็คตำแหน่งลายเซ็น/ตราประทับ (ถ้ามีไฟล์)
+function imageAsset(filePath: string) {
+  if (!fs.existsSync(filePath)) return null
+  return { dataUrl: `data:image/png;base64,${fs.readFileSync(filePath).toString('base64')}`, format: 'PNG' as const }
+}
+const signature = imageAsset(`${outDir}/signature.png`)
+const stamp = imageAsset(`${outDir}/stamp.png`)
+
 // 1) INV แบบราคารวม VAT + หัก ณ ที่จ่าย + หมายเหตุ (ตาม INV2026040001)
 const inv1 = generateAccountingPdf({
   doc: {
@@ -47,8 +55,8 @@ const inv1 = generateAccountingPdf({
   },
   docTypeLabel: 'ใบกำกับภาษี/ใบเสร็จรับเงิน',
   logo: null,
-  signature: null,
-  stamp: null,
+  signature,
+  stamp,
 })
 fs.writeFileSync(`${outDir}/INV-with-wht-notes.pdf`, inv1)
 
@@ -85,8 +93,8 @@ const inv2 = generateAccountingPdf({
   },
   docTypeLabel: 'ใบกำกับภาษี/ใบเสร็จรับเงิน',
   logo: null,
-  signature: null,
-  stamp: null,
+  signature,
+  stamp,
 })
 fs.writeFileSync(`${outDir}/INV-phone-no-wht.pdf`, inv2)
 
@@ -119,8 +127,8 @@ const exp = generateAccountingPdf({
   },
   docTypeLabel: 'บันทึกค่าใช้จ่าย',
   logo: null,
-  signature: null,
-  stamp: null,
+  signature,
+  stamp,
 })
 fs.writeFileSync(`${outDir}/EXP-vat0.pdf`, exp)
 
@@ -156,8 +164,8 @@ const wt = generateAccountingPdf({
   },
   docTypeLabel: 'หนังสือรับรองการหักภาษี ณ ที่จ่าย',
   logo: null,
-  signature: null,
-  stamp: null,
+  signature,
+  stamp,
 })
 fs.writeFileSync(`${outDir}/WT-full-form.pdf`, wt)
 
