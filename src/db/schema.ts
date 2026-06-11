@@ -156,6 +156,16 @@ export const driveIntegrations = sqliteTable('drive_integrations', {
   connectedAt: integer('connected_at').default(sql`(unixepoch())`),
 })
 
+// ─── Meta Ads Integration ────────────────────────────────────────────────────
+export const metaIntegrations = sqliteTable('meta_integrations', {
+  tenantId: text('tenant_id').primaryKey().references(() => tenants.id),
+  accessToken: text('access_token'), // encrypted
+  adAccountId: text('ad_account_id'), // "act_<id>"
+  adAccountName: text('ad_account_name'),
+  currency: text('currency'),
+  connectedAt: integer('connected_at').default(sql`(unixepoch())`),
+})
+
 // ─── Type exports ─────────────────────────────────────────────────────────────
 export type Tenant = typeof tenants.$inferSelect
 export type NewTenant = typeof tenants.$inferInsert
@@ -168,6 +178,7 @@ export type Document = typeof documents.$inferSelect
 export type NewDocument = typeof documents.$inferInsert
 export type DocumentSequence = typeof documentSequences.$inferSelect
 export type DriveIntegration = typeof driveIntegrations.$inferSelect
+export type MetaIntegration = typeof metaIntegrations.$inferSelect
 
 export type DocType = 'INV' | 'EXP' | 'WT' | 'QT' | 'BL' | 'RE'
 export type DocStatus = 'draft' | 'issued' | 'paid' | 'void'

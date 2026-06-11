@@ -52,7 +52,8 @@ export async function createDocument(data: CreateDocumentData) {
   const session = await getSession()
   const tenantId = session.user.id
 
-  const docNumber = await getNextDocNumber(tenantId, data.docType)
+  // เลขที่เอกสารอิงเดือนที่ออก (field `date`) ไม่ใช่วันที่กดสร้าง
+  const docNumber = await getNextDocNumber(tenantId, data.docType, new Date(data.date * 1000))
   const id = generateId()
   const now = Math.floor(Date.now() / 1000)
 
@@ -215,10 +216,10 @@ export async function duplicateDocument(id: string) {
 
   if (!original) throw new Error('Document not found')
 
-  const docNumber = await getNextDocNumber(tenantId, original.docType as DocType)
-  const newId = generateId()
   const now = Math.floor(Date.now() / 1000)
   const today = Math.floor(Date.now() / 1000)
+  const docNumber = await getNextDocNumber(tenantId, original.docType as DocType, new Date(today * 1000))
+  const newId = generateId()
 
   await db.insert(documents).values({
     ...original,
@@ -249,7 +250,8 @@ export async function convertDocument(id: string, targetType: DocType) {
 
   if (!original) throw new Error('Document not found')
 
-  const docNumber = await getNextDocNumber(tenantId, targetType)
+  // เลขที่เอกสารใหม่อิงเดือนของวันที่เอกสารเดิม (ที่ถูก copy มาเป็น date)
+  const docNumber = await getNextDocNumber(tenantId, targetType, new Date((original.date as number) * 1000))
   const newId = generateId()
   const now = Math.floor(Date.now() / 1000)
 

@@ -194,13 +194,17 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
     setIsSubmitting(true)
 
     const today = Math.floor(Date.now() / 1000)
+    // WT: ใช้วันที่ออกหนังสือรับรองเป็นวันที่เอกสาร เพื่อให้เลขที่เอกสารออกตามเดือนที่ออกจริง
+    const issueDate = docType === 'WT' && metadata.certificateDate
+      ? Math.floor(new Date(metadata.certificateDate).getTime() / 1000)
+      : today
     const payloadMetadata = {
       ...metadata,
       priceIncludesVat: includeVat ? 'true' : 'false',
     }
     const payload = {
       docType,
-      date: initialData?.date || today,
+      date: initialData?.date || issueDate,
       dueDate: dueDate ? Math.floor(new Date(dueDate).getTime() / 1000) : undefined,
       contactId: selectedContact?.id,
       contactSnapshot: selectedContact ? JSON.stringify({

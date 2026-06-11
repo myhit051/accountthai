@@ -71,10 +71,12 @@ export async function getDocumentById(id: string, tenantId: string) {
   return rows[0] ?? null
 }
 
-export async function getNextDocNumber(tenantId: string, docType: DocType): Promise<string> {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
+export async function getNextDocNumber(tenantId: string, docType: DocType, issueDate?: Date): Promise<string> {
+  // ออกเลขตาม "เดือนที่ออกเอกสาร" (issueDate) ไม่ใช่วันที่สร้างในระบบ
+  // เช่น หัก ณ ที่จ่ายที่ออกย้อนหลังให้เดือนที่จ่ายจริง ต้องได้เลขเดือนนั้น
+  const ref = issueDate && !Number.isNaN(issueDate.getTime()) ? issueDate : new Date()
+  const year = ref.getFullYear()
+  const month = ref.getMonth() + 1
   const prefix = docType
 
   // Atomic increment using ON CONFLICT DO UPDATE

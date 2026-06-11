@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { db } from '@/db'
-import { tenants, driveIntegrations } from '@/db/schema'
+import { tenants, driveIntegrations, metaIntegrations } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 
@@ -15,6 +15,11 @@ export default async function SettingsPage() {
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
   const [drive] = await db.select({ tenantId: driveIntegrations.tenantId, connectedAt: driveIntegrations.connectedAt })
     .from(driveIntegrations).where(eq(driveIntegrations.tenantId, tenantId)).limit(1)
+  const [meta] = await db.select({
+    tenantId: metaIntegrations.tenantId,
+    adAccountName: metaIntegrations.adAccountName,
+    connectedAt: metaIntegrations.connectedAt,
+  }).from(metaIntegrations).where(eq(metaIntegrations.tenantId, tenantId)).limit(1)
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -80,6 +85,32 @@ export default async function SettingsPage() {
         {drive && (
           <div className="text-xs text-gray-400">
             เชื่อมต่อเมื่อ: {drive.connectedAt ? new Date((drive.connectedAt as number) * 1000).toLocaleDateString('th-TH') : '—'}
+          </div>
+        )}
+      </div>
+
+      {/* Meta Ads */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800">Meta Ads</h2>
+            <p className="text-sm text-gray-400 mt-0.5">เชื่อมต่อเพื่อดูค่าโฆษณาและใบเสร็จจาก Facebook/Meta</p>
+          </div>
+          {meta ? (
+            <div className="flex items-center gap-2">
+              <span className="text-green-500 font-medium text-sm">📣✓ เชื่อมต่อแล้ว</span>
+              <Link href="/settings/meta" className="btn-secondary btn-sm">แก้ไข</Link>
+              <a href="/api/meta/disconnect" className="btn-secondary btn-sm text-red-500">ยกเลิก</a>
+            </div>
+          ) : (
+            <Link id="connect-meta-btn" href="/settings/meta" className="btn-primary btn-sm">
+              เชื่อมต่อ Meta Ads
+            </Link>
+          )}
+        </div>
+        {meta && (
+          <div className="text-xs text-gray-400">
+            บัญชีโฆษณา: {meta.adAccountName || '—'} · เชื่อมต่อเมื่อ: {meta.connectedAt ? new Date((meta.connectedAt as number) * 1000).toLocaleDateString('th-TH') : '—'}
           </div>
         )}
       </div>
