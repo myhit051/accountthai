@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.7.0',
+    date: '2026-06-12',
+    changes: [
+      { type: 'new', text: 'หน้าเอกสารเลือกหลายรายการพร้อมกันได้ แล้วกด "บันทึกเป็น PDF" รวมเป็นไฟล์เดียวดาวน์โหลดทีเดียว' },
+      { type: 'improved', text: 'ปุ่ม "คัดลอก" เอกสารจะเปิดหน้าสร้างพร้อมข้อมูลเดิมให้แก้ไขก่อนบันทึก ไม่สร้างเป็นร่างทันทีอีกต่อไป' },
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-06-12',
     changes: [

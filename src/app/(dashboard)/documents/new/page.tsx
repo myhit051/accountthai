@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import { getContacts } from '@/db/queries/contacts'
 import { getProducts } from '@/db/queries/products'
+import { getDocumentById } from '@/db/queries/documents'
 import DocumentForm from '@/components/documents/DocumentForm'
 import Link from 'next/link'
 
@@ -16,12 +17,12 @@ const DOC_TYPES: DocType[] = ['INV', 'EXP', 'WT', 'QT', 'BL', 'RE']
 export default async function NewDocumentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>
+  searchParams: Promise<{ type?: string; from?: string }>
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect('/login')
 
-  const { type } = await searchParams
+  const { type, from } = await searchParams
   const tenantId = session.user.id
   const docType = type as DocType
 
@@ -63,6 +64,31 @@ export default async function NewDocumentPage({
     getProducts(tenantId),
   ])
 
+  // คัดลอกจากเอกสารเดิม: ดึงข้อมูลมาเติมในฟอร์มสร้าง (ไม่มี id/เลขที่/วันที่ → เป็นการสร้างใหม่ รอแก้ไข+บันทึก)
+  let prefill: Record<string, unknown> | undefined
+  if (from) {
+    const src = await getDocumentById(from, tenantId)
+    if (src) {
+      // รีเซ็ตวันที่ในเอกสารให้ว่าง → ฟอร์มจะ default เป็นวันนี้ (เลขที่/เดือนจะอิงวันที่ใหม่ ไม่ใช่ของเดิม)
+      let metadata = src.metadata
+      try {
+        const m = JSON.parse(src.metadata || '{}')
+        delete m.paymentDate
+        delete m.certificateDate
+        metadata = JSON.stringify(m)
+      } catch {}
+      prefill = {
+        docType: src.docType,
+        contactId: src.contactId,
+        contactSnapshot: src.contactSnapshot,
+        dueDate: src.dueDate,
+        lineItems: src.lineItems,
+        notes: src.notes,
+        metadata,
+      }
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
@@ -77,7 +103,7 @@ export default async function NewDocumentPage({
         </div>
       </div>
 
-      <DocumentForm contacts={contacts} products={products} docType={docType} />
+      <DocumentForm contacts={contacts} products={products} docType={docType} initialData={prefill} />
     </div>
   )
 }

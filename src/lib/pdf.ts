@@ -57,6 +57,44 @@ export async function generatePdfBuffer(id: string, tenantId: string): Promise<P
   return { pdf, filename, isHtml: false }
 }
 
+// รวมหลายเอกสารเป็นไฟล์ PDF เดียว (เอกสารละ 1 หน้าขึ้นไป เรียงตามลำดับ ids)
+export async function generateMultiPdfBuffer(ids: string[], tenantId: string): Promise<{ pdf: Buffer; filename: string } | null> {
+  const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
+  const [seller] = await db.select({ name: users.name }).from(users).where(eq(users.id, tenantId)).limit(1)
+
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait', compress: true, putOnlyUsedFonts: true })
+  registerThaiFonts(pdf)
+
+  let rendered = 0
+  for (const id of ids) {
+    const doc = await getDocumentById(id, tenantId)
+    if (!doc) continue
+
+    const lineItems = parseJson<any[]>(doc.lineItems, [])
+    const contact = doc.contactSnapshot ? parseJson<Record<string, any> | null>(doc.contactSnapshot, null) : null
+    const metadata = parseJson<Record<string, string>>(doc.metadata || '{}', {})
+    const docTypeLabel = getPdfDocTitle(doc.docType as DocType, DOC_TYPE_LABELS[doc.docType as DocType] || doc.docType)
+    const [logo, signature, stamp] = await Promise.all([
+      getImageAsset(tenant?.logoUrl),
+      getImageAsset(metadata.signatureUrl || tenant?.signatureUrl),
+      getImageAsset(metadata.stampUrl || tenant?.stampUrl),
+    ])
+
+    if (rendered > 0) pdf.addPage()
+    renderDocumentContent(pdf, {
+      doc, lineItems, contact, tenant,
+      sellerName: metadata.sellerName || seller?.name || '',
+      metadata, docTypeLabel, logo, signature, stamp,
+    })
+    rendered += 1
+  }
+
+  if (rendered === 0) return null
+
+  pdf.setProperties({ title: `เอกสาร ${rendered} ฉบับ`, author: tenant?.name || 'AccountThai', creator: 'AccountThai' })
+  return { pdf: Buffer.from(pdf.output('arraybuffer') as ArrayBuffer), filename: `documents-${rendered}.pdf` }
+}
+
 export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerName, metadata, docTypeLabel, logo, signature, stamp }: any): Buffer {
   const pdf = new jsPDF({
     unit: 'pt',
@@ -74,6 +112,13 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
     creator: 'AccountThai',
   })
 
+  renderDocumentContent(pdf, { doc, lineItems, contact, tenant, sellerName, metadata, docTypeLabel, logo, signature, stamp })
+
+  return Buffer.from(pdf.output('arraybuffer') as ArrayBuffer)
+}
+
+// วาดเนื้อหาเอกสาร 1 ฉบับลงบนหน้าปัจจุบันของ pdf (ใช้ซ้ำได้ทั้งไฟล์เดี่ยวและไฟล์รวมหลายฉบับ)
+function renderDocumentContent(pdf: jsPDF, { doc, lineItems, contact, tenant, sellerName, metadata, docTypeLabel, logo, signature, stamp }: any) {
   if (doc.docType === 'WT') {
     drawWithholdingTaxCertificate(pdf, { doc, lineItems, contact, tenant, metadata, signature, stamp })
   } else if (doc.docType === 'EXP') {
@@ -113,8 +158,6 @@ export function generateAccountingPdf({ doc, lineItems, contact, tenant, sellerN
       })
     }
   }
-
-  return Buffer.from(pdf.output('arraybuffer') as ArrayBuffer)
 }
 
 function registerThaiFonts(pdf: jsPDF) {

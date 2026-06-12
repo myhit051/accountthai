@@ -5,8 +5,9 @@ import { getDocuments } from '@/db/queries/documents'
 import { formatCurrency, formatDateThai } from '@/lib/utils'
 import { DOC_TYPE_LABELS, DocType, DocStatus } from '@/db/schema'
 import Link from 'next/link'
-import { duplicateDocument, convertDocument } from '@/actions/documents'
+import { convertDocument } from '@/actions/documents'
 import DocumentStatusSelect from '@/components/documents/DocumentStatusSelect'
+import BulkPdfBar from '@/components/documents/BulkPdfBar'
 import DeleteDocumentButton from '@/components/documents/DeleteDocumentButton'
 import EmptyState from '@/components/ui/EmptyState'
 import { DOC_STATUS_DOT_CLASS, DOC_STATUS_LABELS, DOC_STATUS_OPTIONS } from '@/lib/doc-status'
@@ -162,9 +163,12 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
           <span className="text-sm text-gray-500">ทั้งหมด {total} รายการ</span>
-          {pages > 1 && (
-            <span className="text-sm text-gray-500">หน้า {page} / {pages}</span>
-          )}
+          <div className="flex items-center gap-3">
+            <BulkPdfBar />
+            {pages > 1 && (
+              <span className="text-sm text-gray-500">หน้า {page} / {pages}</span>
+            )}
+          </div>
         </div>
         {docs.length === 0 ? (
           <EmptyState
@@ -181,7 +185,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
                 <th className="w-12 px-4 py-3 text-left">
-                  <input type="checkbox" aria-label="เลือกเอกสารทั้งหมด" className="h-4 w-4 rounded border-gray-300" />
+                  <input type="checkbox" id="js-doc-select-all" aria-label="เลือกเอกสารทั้งหมด" className="h-4 w-4 rounded border-gray-300" />
                 </th>
                 <th className="px-4 py-3 text-left font-semibold">
                   <Link href={createSortUrl('date')} className="group flex items-center hover:text-gray-700 transition-colors">
@@ -214,7 +218,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                   return (
                     <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
-                        <input type="checkbox" aria-label={`เลือก ${doc.docNumber}`} className="h-4 w-4 rounded border-gray-300" />
+                        <input type="checkbox" value={doc.id} aria-label={`เลือก ${doc.docNumber}`} className="js-doc-select h-4 w-4 rounded border-gray-300" />
                       </td>
                       <td className="px-4 py-3">
                         <Link href={editHref} className="block whitespace-nowrap text-gray-900 hover:text-blue-700">
@@ -267,12 +271,10 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                               <Download size={15} aria-hidden="true" />
                               ดาวน์โหลด PDF
                             </a>
-                            <form action={duplicateDocument.bind(null, doc.id)}>
-                              <button type="submit" className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                                <Copy size={15} aria-hidden="true" />
-                                คัดลอก
-                              </button>
-                            </form>
+                            <Link href={`/documents/new?type=${doc.docType}&from=${doc.id}`} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                              <Copy size={15} aria-hidden="true" />
+                              คัดลอก
+                            </Link>
                             {doc.docType === 'BL' && (doc.status === 'issued' || doc.status === 'paid') && (
                               <form action={convertDocument.bind(null, doc.id, 'INV')}>
                                 <button type="submit" className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">

@@ -4,7 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import { getDocumentById } from '@/db/queries/documents'
 import { formatCurrency, formatDateThai, amountInThaiWords } from '@/lib/utils'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
-import { issueDocument, markDocumentPaid, duplicateDocument, convertDocument } from '@/actions/documents'
+import { issueDocument, markDocumentPaid, convertDocument } from '@/actions/documents'
 import Link from 'next/link'
 import PdfPreviewModal from '@/components/documents/PdfPreviewModal'
 import DriveUploader from '@/components/documents/DriveUploader'
@@ -71,10 +71,8 @@ export default async function DocumentDetailPage({ params }: Props) {
             <Link href={`/documents/${doc.id}/edit`} id="edit-btn" className="btn-secondary btn-sm">แก้ไข</Link>
           )}
 
-          {/* Duplicate */}
-          <form action={duplicateDocument.bind(null, doc.id)}>
-            <button type="submit" id="duplicate-btn" className="btn-secondary btn-sm">คัดลอก</button>
-          </form>
+          {/* Duplicate — เปิดหน้าสร้างพร้อมข้อมูลเดิม รอแก้ไข+บันทึก (ยังไม่สร้างร่างทันที) */}
+          <Link href={`/documents/new?type=${doc.docType}&from=${doc.id}`} id="duplicate-btn" className="btn-secondary btn-sm">คัดลอก</Link>
 
           {/* Convert */}
           {doc.docType === 'QT' && (isIssued || isDraft) && (

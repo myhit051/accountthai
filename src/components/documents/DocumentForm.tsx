@@ -263,7 +263,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="text-sm font-semibold text-gray-900">
-              {initialData ? `แก้ไข${DOC_TYPE_LABELS[docType]}` : `สร้าง${DOC_TYPE_LABELS[docType]}`}
+              {initialData?.id ? `แก้ไข${DOC_TYPE_LABELS[docType]}` : `สร้าง${DOC_TYPE_LABELS[docType]}`}
             </div>
             <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
               <span>{initialData?.docNumber || 'เลขที่จะถูกกำหนดอัตโนมัติ'}</span>
