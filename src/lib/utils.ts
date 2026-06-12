@@ -151,5 +151,6 @@ export function decryptToken(encryptedText: string): string {
 // ─── PDF filename ─────────────────────────────────────────────────────────────
 export function getPdfFilename(companyName: string, docNumber: string, partnerName: string): string {
   const sanitize = (s: string) => s.replace(/[^a-zA-Zก-๙0-9_-]/g, '_').substring(0, 30)
-  return `${sanitize(companyName)}_${docNumber}_${sanitize(partnerName)}.pdf`
+  // เลขที่เอกสารนำหน้าเสมอ เพื่อให้เรียง/ค้นหาไฟล์ได้ง่าย
+  return `${docNumber}_${sanitize(companyName)}_${sanitize(partnerName)}.pdf`
 }

@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.8.0',
+    date: '2026-06-12',
+    changes: [
+      { type: 'improved', text: 'ดาวน์โหลดหลายเอกสารพร้อมกันจะได้เป็นไฟล์ ZIP ที่แยก PDF รายการละ 1 ไฟล์ (ไม่รวมเป็นไฟล์เดียวแล้ว)' },
+      { type: 'improved', text: 'ชื่อไฟล์ PDF ขึ้นต้นด้วยเลขที่เอกสารทุกฉบับ เรียงและค้นหาง่ายขึ้น' },
+    ],
+  },
+  {
     version: '1.7.0',
     date: '2026-06-12',
     changes: [

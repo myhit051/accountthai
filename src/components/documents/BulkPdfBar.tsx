@@ -55,7 +55,7 @@ export default function BulkPdfBar() {
   return (
     <button type="button" onClick={handleSave} disabled={busy} className="btn-primary btn-sm">
       <Download size={15} aria-hidden="true" />
-      {busy ? 'กำลังสร้าง PDF...' : `บันทึกเป็น PDF (${count})`}
+      {busy ? 'กำลังสร้างไฟล์...' : count > 1 ? `ดาวน์โหลด ZIP (${count})` : 'ดาวน์โหลด PDF (1)'}
     </button>
   )
 }
