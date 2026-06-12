@@ -420,22 +420,6 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
               />
             </div>
             <div>
-              <label className="form-label">ประเภทเงินได้</label>
-              <select 
-                className="form-input" 
-                value={metadata.incomeType || ''} 
-                onChange={e => setMetadata(prev => ({...prev, incomeType: e.target.value}))}
-              >
-                <option value="">เลือกประเภทเงินได้...</option>
-                <option value="ค่าบริการ">ค่าบริการ</option>
-                <option value="ค่าโฆษณา">ค่าโฆษณา</option>
-                <option value="ค่าจ้างทำของ">ค่าจ้างทำของ</option>
-                <option value="ค่าเช่า">ค่าเช่า</option>
-                <option value="ค่าขนส่ง">ค่าขนส่ง</option>
-                <option value="อื่นๆ">อื่นๆ</option>
-              </select>
-            </div>
-            <div>
               <label className="form-label">หมวดเงินได้ในหนังสือรับรอง</label>
               <select
                 className="form-input"
@@ -447,7 +431,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                 <option value="3">3. ค่าแห่งลิขสิทธิ์</option>
                 <option value="4">4. ดอกเบี้ย / เงินปันผล</option>
                 <option value="5">5. ค่าบริการ ค่าโฆษณา ค่าเช่า ค่าขนส่ง</option>
-                <option value="6">6. อื่นๆ</option>
+                <option value="6">6. อื่นๆ (พิมพ์ชื่อในช่องรายการ)</option>
               </select>
             </div>
             <div>

@@ -1,2 +1,3 @@
 - 2026-06-11 12:37 | claude/contacts-redesign-merge | 34bab3f Merge pull request #5 from myhit051/claude/product-page-dropdown-KNcoL
 - 2026-06-11 15:15 | main | e9c320f เพิ่มเมนูค่าโฆษณา Meta (billing + daily spend) และออกเลขที่เอกสารตามเดือนที่ออกจริง
+- 2026-06-12 11:26 | main | 4a1e039 ฟอร์มหัก ณ ที่จ่าย: ซ่อนคอลัมน์ที่ไม่ใช้ กรอกจำนวนเงินตรงๆ ชื่อรายการไม่บังคับ
