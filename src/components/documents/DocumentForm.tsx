@@ -170,7 +170,8 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
     setLineItems(prev =>
       prev.map(item => {
         if (item.id !== lineId) return item
-        const unitPrice = product.unitPrice ?? 0
+        // บันทึกค่าใช้จ่าย = ซื้อเข้า → ใช้ราคาทุน (cost) ถ้ามี ไม่ใช่ราคาขาย; ถ้าไม่ได้ตั้งทุนไว้ปล่อย 0 ให้กรอกเอง
+        const unitPrice = docType === 'EXP' ? (product.cost ?? 0) : (product.unitPrice ?? 0)
         return {
           ...item,
           productId: product.id,
@@ -206,9 +207,11 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
     setIsSubmitting(true)
 
     const today = Math.floor(Date.now() / 1000)
-    // WT: ใช้วันที่ออกหนังสือรับรองเป็นวันที่เอกสาร เพื่อให้เลขที่เอกสารออกตามเดือนที่ออกจริง
-    const issueDate = docType === 'WT' && metadata.certificateDate
-      ? Math.floor(new Date(metadata.certificateDate).getTime() / 1000)
+    // วันที่เอกสาร (ใช้ออกเลขที่ให้ตรงเดือนที่ออกจริง รองรับบันทึกย้อนหลัง — ไม่ใช้ "วันนี้")
+    // WT=วันที่ออกหนังสือรับรอง, ที่เหลือ (EXP/INV/QT/BL/RE)=วันที่ชำระ/รับชำระ ที่กรอกในเอกสาร
+    const issueDateSource = docType === 'WT' ? metadata.certificateDate : metadata.paymentDate
+    const issueDate = issueDateSource
+      ? Math.floor(new Date(issueDateSource).getTime() / 1000)
       : today
     const payloadMetadata = {
       ...metadata,
