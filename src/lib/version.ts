@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.4.1',
+    date: '2026-06-12',
+    changes: [
+      { type: 'fixed', text: 'แก้ปัญหาปุ่มบันทึกค้างที่ "กำลังบันทึก..." ตอนแก้ไขเอกสาร ตอนนี้บันทึกแล้วเด้งไปหน้าเอกสารทันที และบันทึกได้เร็วขึ้น' },
+    ],
+  },
+  {
     version: '1.4.0',
     date: '2026-06-12',
     changes: [

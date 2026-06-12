@@ -109,6 +109,7 @@ export async function updateDocument(id: string, data: Partial<CreateDocumentDat
   revalidatePath(`/documents/${id}`)
   revalidatePath('/documents')
   revalidatePath('/')
+  redirect(`/documents/${id}`)
 }
 
 export async function updateDocumentStatus(id: string, status: DocumentStatus) {

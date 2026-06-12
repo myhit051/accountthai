@@ -236,10 +236,22 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
       metadata: payloadMetadata,
     }
 
-    if (initialData?.id) {
-      await updateDocument(initialData.id, payload)
-    } else {
-      await createDocument(payload)
+    // สำเร็จ → server action จะ redirect ไปหน้าเอกสาร (คอมโพเนนต์ unmount เอง)
+    // ล้มเหลว → ปลดล็อกปุ่มและแจ้งผู้ใช้ ไม่ให้ค้างที่ "กำลังบันทึก..."
+    try {
+      if (initialData?.id) {
+        await updateDocument(initialData.id, payload)
+      } else {
+        await createDocument(payload)
+      }
+    } catch (err) {
+      // redirect ของ Next.js เด้งผ่าน throw — ปล่อยให้ Next จัดการ navigation ต่อ ไม่ใช่ error จริง
+      if (err && typeof err === 'object' && 'digest' in err && String((err as { digest?: unknown }).digest).startsWith('NEXT_REDIRECT')) {
+        throw err
+      }
+      console.error('บันทึกเอกสารไม่สำเร็จ', err)
+      alert('บันทึกเอกสารไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+      setIsSubmitting(false)
     }
   }
 

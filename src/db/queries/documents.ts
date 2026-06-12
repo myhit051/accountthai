@@ -79,21 +79,17 @@ export async function getNextDocNumber(tenantId: string, docType: DocType, issue
   const month = ref.getMonth() + 1
   const prefix = docType
 
-  // Atomic increment using ON CONFLICT DO UPDATE
-  await client.execute({
+  // Atomic increment + อ่านค่าในคำสั่งเดียว (RETURNING) ลด round-trip ไป Turso จาก 2 เหลือ 1
+  const result = await client.execute({
     sql: `INSERT INTO document_sequences (tenant_id, doc_type, year, month, last_number)
      VALUES (?, ?, ?, ?, 1)
      ON CONFLICT (tenant_id, doc_type, year, month)
-     DO UPDATE SET last_number = last_number + 1`,
+     DO UPDATE SET last_number = last_number + 1
+     RETURNING last_number`,
     args: [tenantId, docType, year, month],
   })
 
-  const seq = await client.execute({
-    sql: 'SELECT last_number FROM document_sequences WHERE tenant_id = ? AND doc_type = ? AND year = ? AND month = ?',
-    args: [tenantId, docType, year, month],
-  })
-
-  const lastNumber = (seq.rows[0]?.last_number as number) ?? 1
+  const lastNumber = (result.rows[0]?.last_number as number) ?? 1
   const mm = String(month).padStart(2, '0')
   const nn = String(lastNumber).padStart(4, '0')
   return `${prefix}${year}${mm}${nn}`
