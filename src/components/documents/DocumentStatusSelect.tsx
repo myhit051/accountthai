@@ -5,8 +5,8 @@ import { useState, useTransition } from 'react'
 import { updateDocumentStatus } from '@/actions/documents'
 import {
   DOC_STATUS_OPTIONS,
-  DOC_STATUS_LABELS,
   DOC_STATUS_SELECT_CLASS,
+  statusLabel,
   normalizeStatus,
 } from '@/lib/doc-status'
 import type { DocStatus } from '@/db/schema'
@@ -16,9 +16,10 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 interface Props {
   docId: string
   status: string
+  docType?: string
 }
 
-export default function DocumentStatusSelect({ docId, status }: Props) {
+export default function DocumentStatusSelect({ docId, status, docType }: Props) {
   const router = useRouter()
   const toast = useToast()
   const [selectedStatus, setSelectedStatus] = useState<DocStatus>(normalizeStatus(status))
@@ -32,7 +33,7 @@ export default function DocumentStatusSelect({ docId, status }: Props) {
       try {
         await updateDocumentStatus(docId, nextStatus)
         router.refresh()
-        toast.success(`เปลี่ยนสถานะเป็น "${DOC_STATUS_LABELS[nextStatus]}" แล้ว`)
+        toast.success(`เปลี่ยนสถานะเป็น "${statusLabel(nextStatus, docType)}" แล้ว`)
       } catch {
         setSelectedStatus(previousStatus)
         toast.error('เปลี่ยนสถานะไม่สำเร็จ กรุณาลองใหม่')
@@ -59,7 +60,7 @@ export default function DocumentStatusSelect({ docId, status }: Props) {
         onChange={(event) => handleChange(event.target.value as DocStatus)}
       >
         {DOC_STATUS_OPTIONS.map((option) => (
-          <option key={option} value={option}>{DOC_STATUS_LABELS[option]}</option>
+          <option key={option} value={option}>{statusLabel(option, docType)}</option>
         ))}
       </select>
 

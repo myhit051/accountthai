@@ -30,7 +30,7 @@ export default function ProductSearch({
   // Quick-add modal state
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ name: '', type: 'product', unit: 'ชิ้น', unitPrice: '0', vatType: 'vat' })
+  const [form, setForm] = useState({ name: '', type: 'product', unit: 'ชิ้น', unitPrice: '', vatType: 'vat' })
 
   const query = value || ''
 
@@ -75,7 +75,7 @@ export default function ProductSearch({
   }
 
   function openQuickAdd() {
-    setForm({ name: query.trim(), type: 'product', unit: 'ชิ้น', unitPrice: '0', vatType: 'vat' })
+    setForm({ name: query.trim(), type: 'product', unit: 'ชิ้น', unitPrice: '', vatType: 'vat' })
     setIsOpen(false)
     setQuickAddOpen(true)
   }

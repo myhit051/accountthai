@@ -6,7 +6,7 @@ import { formatCurrency, formatDateThai } from '@/lib/utils'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import DocTypeChart from '@/components/documents/DocTypeChart'
 import Link from 'next/link'
-import { DOC_STATUS_BADGE_CLASS, DOC_STATUS_LABELS, normalizeStatus } from '@/lib/doc-status'
+import { DOC_STATUS_BADGE_CLASS, statusLabel, normalizeStatus } from '@/lib/doc-status'
 import { Building2, CheckCircle2, Circle, Cloud, FileText, Users } from 'lucide-react'
 
 const THAI_MONTHS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
@@ -245,7 +245,7 @@ export default async function DashboardPage({
                       </td>
                       <td>
                         <span className={`badge ${DOC_STATUS_BADGE_CLASS[normalizeStatus(doc.status)]}`}>
-                          {DOC_STATUS_LABELS[normalizeStatus(doc.status)]}
+                          {statusLabel(normalizeStatus(doc.status), doc.docType)}
                         </span>
                       </td>
                       <td className="text-xs text-gray-500">

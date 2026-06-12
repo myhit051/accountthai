@@ -12,6 +12,20 @@ export const DOC_STATUS_LABELS: Record<DocStatus, string> = {
   void: 'ยกเลิก',
 }
 
+// ค่าใช้จ่าย = จ่ายเงินออก จึงใช้คำฝั่ง "จ่าย" แทนฝั่ง "รับเงิน"
+const EXP_STATUS_LABELS: Record<DocStatus, string> = {
+  draft: 'ร่าง',
+  issued: 'รอชำระ',
+  paid: 'จ่ายแล้ว',
+  void: 'ยกเลิก',
+}
+
+// ป้ายสถานะตามชนิดเอกสาร — EXP ใช้คำฝั่งจ่าย, ที่เหลือใช้คำฝั่งรับเงิน
+export function statusLabel(status: DocStatus, docType?: string): string {
+  if (docType === 'EXP') return EXP_STATUS_LABELS[status]
+  return DOC_STATUS_LABELS[status]
+}
+
 // คลาส badge (นิยามใน globals.css)
 export const DOC_STATUS_BADGE_CLASS: Record<DocStatus, string> = {
   draft: 'badge-draft',

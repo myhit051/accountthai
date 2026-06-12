@@ -244,7 +244,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <DocumentStatusSelect docId={doc.id} status={doc.status} />
+                        <DocumentStatusSelect docId={doc.id} status={doc.status} docType={doc.docType} />
                       </td>
                       <td className="px-4 py-3 text-right">
                         <details className="relative inline-block">
@@ -329,7 +329,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                   </div>
                 </Link>
                 <div className="pt-1">
-                  <DocumentStatusSelect docId={doc.id} status={doc.status} />
+                  <DocumentStatusSelect docId={doc.id} status={doc.status} docType={doc.docType} />
                 </div>
               </li>
             )

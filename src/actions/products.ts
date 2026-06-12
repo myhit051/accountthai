@@ -23,6 +23,7 @@ export interface ProductData {
   unitPrice: number
   cost?: number
   vatType: 'vat' | 'none'
+  category?: string
 }
 
 export async function createProduct(data: ProductData) {
@@ -43,6 +44,7 @@ export async function createProduct(data: ProductData) {
     unitPrice: data.unitPrice,
     cost: data.cost,
     vatType: data.vatType,
+    category: data.category,
     createdAt: now,
     updatedAt: now,
   }

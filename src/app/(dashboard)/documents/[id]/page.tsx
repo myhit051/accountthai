@@ -57,7 +57,7 @@ export default async function DocumentDetailPage({ params }: Props) {
           </div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">{DOC_TYPE_LABELS[doc.docType as DocType]}</h1>
-            <DocumentStatusSelect docId={doc.id} status={doc.status} />
+            <DocumentStatusSelect docId={doc.id} status={doc.status} docType={doc.docType} />
           </div>
         </div>
 
@@ -65,6 +65,11 @@ export default async function DocumentDetailPage({ params }: Props) {
         <div className="flex flex-wrap gap-2">
           {/* PDF Preview */}
           <PdfPreviewModal docId={doc.id} docNumber={doc.docNumber} />
+
+          {/* Edit — แก้ไขได้เมื่อยังไม่ยกเลิก/ชำระแล้ว */}
+          {(isDraft || isIssued) && (
+            <Link href={`/documents/${doc.id}/edit`} id="edit-btn" className="btn-secondary btn-sm">แก้ไข</Link>
+          )}
 
           {/* Duplicate */}
           <form action={duplicateDocument.bind(null, doc.id)}>

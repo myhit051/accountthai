@@ -6,6 +6,7 @@ import ContactSearch from './ContactSearch'
 import ProductSearch from './ProductSearch'
 import { createDocument, updateDocument, LineItem } from '@/actions/documents'
 import { formatCurrency, amountInThaiWords, calculateInclusiveVat } from '@/lib/utils'
+import { EXPENSE_CATEGORIES } from '@/lib/expense-categories'
 import { Save, X } from 'lucide-react'
 import Link from 'next/link'
 
@@ -30,16 +31,6 @@ const VAT_TYPES: Record<DocType, boolean> = {
 const PAYMENT_DOC_TYPES: DocType[] = ['INV', 'QT', 'BL', 'RE']
 const VAT_SUPPORTED_DOC_TYPES: DocType[] = ['INV', 'QT', 'BL', 'RE', 'EXP']
 const DISCOUNT_RATE_DOC_TYPES: DocType[] = ['INV', 'QT', 'BL', 'RE']
-const EXPENSE_CATEGORIES = [
-  'ซื้อสินค้าไว้ขาย',
-  'ค่าขนส่งสินค้า/ลอจิสติกส์',
-  'ค่าเช่า',
-  'ค่าสาธารณูปโภค',
-  'ค่าโฆษณา',
-  'ค่าบริการ',
-  'ค่าใช้จ่ายเบ็ดเตล็ด',
-  'อื่นๆ',
-]
 
 function todayInputValue() {
   const today = new Date()
@@ -73,6 +64,12 @@ function roundMoney(value: number) {
 function parseMoney(value?: string) {
   const parsed = parseFloat(value || '0')
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+// แสดงช่องตัวเลขเป็นค่าว่างเมื่อค่าเป็น 0 — จะได้พิมพ์เลขใหม่ได้เลย ไม่ต้องลบ 0 ทิ้งก่อน
+function blankZero(value: string | number | undefined | null): string | number {
+  if (value === undefined || value === null || value === '') return ''
+  return Number(value) === 0 ? '' : value
 }
 
 function createLineItem(docType: DocType, category = ''): LineItem {
@@ -177,6 +174,8 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
           productId: product.id,
           description: product.name,
           unit: product.unit || item.unit,
+          // EXP: ดึงหมวดหมู่ของสินค้ามาเติมให้ ถ้าสินค้ามีตั้งไว้
+          category: docType === 'EXP' && product.category ? product.category : item.category,
           unitPrice,
           amount: Math.round(Number(item.quantity) * unitPrice * 100) / 100,
         }
@@ -347,7 +346,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                 min="0"
                 step="0.01"
                 className="form-input text-right font-mono"
-                value={metadata.discountAmount || '0'}
+                value={blankZero(metadata.discountAmount)}
                 onChange={e => setMetadata(prev => ({ ...prev, discountAmount: e.target.value }))}
               />
             </div>
@@ -358,7 +357,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                 min="0"
                 step="0.01"
                 className="form-input text-right font-mono"
-                value={metadata.withholdingTaxAmount || '0'}
+                value={blankZero(metadata.withholdingTaxAmount)}
                 onChange={e => setMetadata(prev => ({ ...prev, withholdingTaxAmount: e.target.value }))}
               />
             </div>
@@ -733,7 +732,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                         className="form-input text-right text-sm py-1.5 font-mono"
                         min="0"
                         step="0.01"
-                        value={item.unitPrice}
+                        value={blankZero(item.unitPrice)}
                         onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                       />
                     </td>
@@ -773,7 +772,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                         className="form-input text-right text-sm py-1.5 font-mono"
                         min="0"
                         step="0.01"
-                        value={item.amount}
+                        value={blankZero(item.amount)}
                         onChange={(e) => updateLineItem(item.id, 'amount', parseFloat(e.target.value) || 0)}
                       />
                     </td>
@@ -825,7 +824,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                   max="100"
                   step="0.01"
                   className="form-input w-20 py-1 text-right font-mono"
-                  value={metadata.discountRate || '0'}
+                  value={blankZero(metadata.discountRate)}
                   onChange={e => setMetadata(prev => ({ ...prev, discountRate: e.target.value }))}
                 />
                 <span>%</span>

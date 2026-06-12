@@ -96,6 +96,7 @@ export const products = sqliteTable('products', {
   unit: text('unit').default('ชิ้น'), // หน่วย
   unitPrice: real('unit_price').notNull().default(0), // ราคา/หน่วย
   cost: real('cost'), // ต้นทุน (optional)
+  category: text('category'), // หมวดหมู่ค่าใช้จ่ายเริ่มต้น (ใช้เติมอัตโนมัติตอนเลือกลงบันทึกค่าใช้จ่าย)
   vatType: text('vat_type').notNull().default('vat'), // vat | none (ข้อมูลประกอบ ไม่เปลี่ยนการคำนวณเอกสาร)
   deletedAt: integer('deleted_at'),
   createdAt: integer('created_at').default(sql`(unixepoch())`),

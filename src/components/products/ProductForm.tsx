@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createProduct, updateProduct, ProductData } from '@/actions/products'
 import { Product } from '@/db/schema'
+import { EXPENSE_CATEGORIES } from '@/lib/expense-categories'
 
 const TYPE_OPTIONS = [
   { value: 'product', label: 'สินค้า' },
@@ -47,6 +48,7 @@ export default function ProductForm({ product }: { product?: Product }) {
       unitPrice: parseNumber(data.get('unitPrice')),
       cost: costRaw ? parseNumber(data.get('cost')) : undefined,
       vatType: (data.get('vatType') as ProductData['vatType']) || 'vat',
+      category: String(data.get('category') || '') || undefined,
     }
 
     setLoading(true)
@@ -90,11 +92,19 @@ export default function ProductForm({ product }: { product?: Product }) {
         </div>
         <div>
           <label className="form-label" htmlFor="unitPrice">ราคา/หน่วย (บาท)</label>
-          <input id="unitPrice" name="unitPrice" type="number" min="0" step="0.01" className="form-input text-right font-mono" placeholder="0.00" defaultValue={product?.unitPrice ?? 0} />
+          <input id="unitPrice" name="unitPrice" type="number" min="0" step="0.01" className="form-input text-right font-mono" placeholder="0.00" defaultValue={product?.unitPrice || ''} />
         </div>
         <div>
           <label className="form-label" htmlFor="cost">ต้นทุน/หน่วย (บาท)</label>
           <input id="cost" name="cost" type="number" min="0" step="0.01" className="form-input text-right font-mono" placeholder="ไม่ระบุ" defaultValue={product?.cost ?? ''} />
+        </div>
+        <div>
+          <label className="form-label" htmlFor="category">หมวดหมู่ค่าใช้จ่าย</label>
+          <select id="category" name="category" className="form-input" defaultValue={product?.category || ''}>
+            <option value="">ไม่ระบุ</option>
+            {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">ใช้เติมอัตโนมัติเมื่อเลือกสินค้านี้ในบันทึกค่าใช้จ่าย</p>
         </div>
         <div className="sm:col-span-2">
           <label className="form-label" htmlFor="description">คำอธิบาย</label>
