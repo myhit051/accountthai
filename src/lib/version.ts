@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.3.0',
+    date: '2026-06-12',
+    changes: [
+      { type: 'improved', text: 'ฟอร์มออกหนังสือรับรองหัก ณ ที่จ่าย กรอกง่ายขึ้น เหลือแค่ใส่จำนวนเงินที่จ่ายโดยตรง ไม่ต้องกรอกจำนวน/หน่วย/ราคาต่อหน่วยที่ไม่เกี่ยวข้องอีกต่อไป และชื่อรายการไม่บังคับ' },
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-06-11',
     changes: [

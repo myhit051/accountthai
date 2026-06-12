@@ -140,6 +140,12 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
   const totalAmount = baseTotalAmount
   const netPayable = Math.max(totalAmount - withholdingTaxAmount, 0)
 
+  // WT บังคับแค่ "จำนวนเงินที่จ่าย" (ชื่อรายการเป็น optional) — เอกสารอื่นบังคับชื่อรายการ
+  const isWT = docType === 'WT'
+  const canSubmit = isWT
+    ? lineItems.some(item => item.amount > 0)
+    : !lineItems.some(item => !item.description)
+
   function updateLineItem(id: string, field: keyof LineItem, value: string | number) {
     setLineItems(prev =>
       prev.map(item => {
@@ -147,6 +153,12 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
         const updated = { ...item, [field]: value }
         if (field === 'quantity' || field === 'unitPrice') {
           updated.amount = Math.round(Number(updated.quantity) * Number(updated.unitPrice) * 100) / 100
+        }
+        // WT กรอกจำนวนเงินที่จ่ายตรงๆ — sync quantity/unitPrice ให้ logic เดิม (PDF/ภาษี) ใช้ค่าได้
+        if (field === 'amount') {
+          updated.amount = Math.round(Number(value) * 100) / 100
+          updated.quantity = 1
+          updated.unitPrice = updated.amount
         }
         return updated
       })
@@ -255,7 +267,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
             <button
               id="save-draft-toolbar"
               type="submit"
-              disabled={isSubmitting || lineItems.some(i => !i.description)}
+              disabled={isSubmitting || !canSubmit}
               className="btn-primary"
             >
               {isSubmitting ? (
@@ -624,7 +636,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
       {/* Line Items */}
       <div className="card p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">รายการสินค้า / บริการ</h2>
+          <h2 className="text-sm font-semibold text-gray-700">{isWT ? 'เงินได้ที่จ่าย' : 'รายการสินค้า / บริการ'}</h2>
           {VAT_SUPPORTED_DOC_TYPES.includes(docType) && (
             <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
               <input
@@ -643,14 +655,16 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
           <table className="w-full min-w-[560px]">
             <thead>
               <tr>
-                <th className={docType === 'EXP' ? 'w-[28%]' : 'w-[38%]'}>รายการ <span className="text-red-500">*</span></th>
+                <th className={isWT ? 'w-[44%]' : docType === 'EXP' ? 'w-[28%]' : 'w-[38%]'}>
+                  รายการ {!isWT && <span className="text-red-500">*</span>}
+                </th>
                 {docType === 'EXP' && <th className="w-[20%]">หมวดหมู่</th>}
-                <th className={docType === 'EXP' || docType === 'WT' ? 'w-[9%] text-center' : 'w-[10%] text-center'}>จำนวน</th>
-                <th className={docType === 'EXP' || docType === 'WT' ? 'w-[10%]' : 'w-[12%]'}>หน่วย</th>
-                <th className={docType === 'EXP' || docType === 'WT' ? 'w-[16%] text-right' : 'w-[18%] text-right'}>ราคา/หน่วย</th>
-                {docType === 'WT' && <th className="w-[12%] text-center">หมวดเงินได้</th>}
-                {docType === 'WT' && <th className="w-[10%] text-center">ภาษี %</th>}
-                <th className={docType === 'EXP' || docType === 'WT' ? 'w-[13%] text-right' : 'w-[16%] text-right'}>จำนวนเงิน</th>
+                {!isWT && <th className={docType === 'EXP' ? 'w-[9%] text-center' : 'w-[10%] text-center'}>จำนวน</th>}
+                {!isWT && <th className={docType === 'EXP' ? 'w-[10%]' : 'w-[12%]'}>หน่วย</th>}
+                {!isWT && <th className={docType === 'EXP' ? 'w-[16%] text-right' : 'w-[18%] text-right'}>ราคา/หน่วย</th>}
+                {isWT && <th className="w-[18%] text-center">หมวดเงินได้</th>}
+                {isWT && <th className="w-[10%] text-center">ภาษี %</th>}
+                <th className={isWT ? 'w-[16%] text-right' : docType === 'EXP' ? 'w-[13%] text-right' : 'w-[16%] text-right'}>จำนวนเงิน</th>
                 <th className={docType === 'EXP' ? 'w-[4%]' : 'w-[6%]'}></th>
               </tr>
             </thead>
@@ -670,10 +684,10 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                       <input
                         type="text"
                         className="form-input text-sm py-1.5"
-                        placeholder="รายละเอียด..."
+                        placeholder={isWT ? 'รายละเอียด (ถ้ามี)' : 'รายละเอียด...'}
                         value={item.description}
                         onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
-                        required
+                        required={!isWT}
                       />
                     )}
                   </td>
@@ -691,34 +705,40 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                       </select>
                     </td>
                   )}
-                  <td>
-                    <input
-                      type="number"
-                      className="form-input text-center text-sm py-1.5"
-                      min="0"
-                      step="0.01"
-                      value={item.quantity}
-                      onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className="form-input text-sm py-1.5"
-                      value={item.unit}
-                      onChange={(e) => updateLineItem(item.id, 'unit', e.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      className="form-input text-right text-sm py-1.5 font-mono"
-                      min="0"
-                      step="0.01"
-                      value={item.unitPrice}
-                      onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                    />
-                  </td>
+                  {!isWT && (
+                    <td>
+                      <input
+                        type="number"
+                        className="form-input text-center text-sm py-1.5"
+                        min="0"
+                        step="0.01"
+                        value={item.quantity}
+                        onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                      />
+                    </td>
+                  )}
+                  {!isWT && (
+                    <td>
+                      <input
+                        type="text"
+                        className="form-input text-sm py-1.5"
+                        value={item.unit}
+                        onChange={(e) => updateLineItem(item.id, 'unit', e.target.value)}
+                      />
+                    </td>
+                  )}
+                  {!isWT && (
+                    <td>
+                      <input
+                        type="number"
+                        className="form-input text-right text-sm py-1.5 font-mono"
+                        min="0"
+                        step="0.01"
+                        value={item.unitPrice}
+                        onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                      />
+                    </td>
+                  )}
                   {docType === 'WT' && (
                     <td>
                       <select
@@ -747,9 +767,22 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                       />
                     </td>
                   )}
-                  <td className="text-right font-mono text-sm font-semibold text-gray-900 px-3">
-                    {formatCurrency(item.amount)}
-                  </td>
+                  {isWT ? (
+                    <td>
+                      <input
+                        type="number"
+                        className="form-input text-right text-sm py-1.5 font-mono"
+                        min="0"
+                        step="0.01"
+                        value={item.amount}
+                        onChange={(e) => updateLineItem(item.id, 'amount', parseFloat(e.target.value) || 0)}
+                      />
+                    </td>
+                  ) : (
+                    <td className="text-right font-mono text-sm font-semibold text-gray-900 px-3">
+                      {formatCurrency(item.amount)}
+                    </td>
+                  )}
                   <td className="text-center">
                     <button
                       type="button"
@@ -869,7 +902,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
         <button
           id="save-draft-btn"
           type="submit"
-          disabled={isSubmitting || lineItems.some(i => !i.description)}
+          disabled={isSubmitting || !canSubmit}
           className="btn-primary"
         >
           {isSubmitting ? (
