@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Product } from '@/db/schema'
 import { createProduct } from '@/actions/products'
 
@@ -23,6 +23,9 @@ export default function ProductSearch({
 }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [filtered, setFiltered] = useState<Product[]>([])
+  // dropdown ใช้ position: fixed อ้างอิงตำแหน่งช่องกรอก เพื่อไม่ให้โดน overflow ของตารางตัดทิ้ง
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null)
 
   // Quick-add modal state
   const [quickAddOpen, setQuickAddOpen] = useState(false)
@@ -47,6 +50,24 @@ export default function ProductSearch({
 
   const hasExactMatch = products.some(p => p.name.trim().toLowerCase() === query.trim().toLowerCase())
   const showCreate = query.trim().length > 0 && !hasExactMatch
+
+  // อัปเดตตำแหน่ง dropdown ให้ตรงกับช่องกรอก (รวมตอน scroll/resize ระหว่างเปิดอยู่)
+  useEffect(() => {
+    if (!isOpen) return
+    const updateCoords = () => {
+      const el = inputRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      setCoords({ top: r.bottom + 4, left: r.left, width: r.width })
+    }
+    updateCoords()
+    window.addEventListener('scroll', updateCoords, true)
+    window.addEventListener('resize', updateCoords)
+    return () => {
+      window.removeEventListener('scroll', updateCoords, true)
+      window.removeEventListener('resize', updateCoords)
+    }
+  }, [isOpen])
 
   function handleSelect(product: Product) {
     setIsOpen(false)
@@ -83,6 +104,7 @@ export default function ProductSearch({
   return (
     <div className="relative">
       <input
+        ref={inputRef}
         type="text"
         className="form-input text-sm py-1.5"
         placeholder={placeholder}
@@ -94,8 +116,10 @@ export default function ProductSearch({
         required
       />
 
-      {isOpen && (filtered.length > 0 || showCreate) && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+      {isOpen && coords && (filtered.length > 0 || showCreate) && (
+        <div
+          className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
+          style={{ top: coords.top, left: coords.left, width: coords.width }}>
           {filtered.map(product => (
             <button
               key={product.id}

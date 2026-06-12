@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.4.2',
+    date: '2026-06-12',
+    changes: [
+      { type: 'fixed', text: 'แก้ปัญหารายการสินค้าที่บันทึกไว้ไม่แสดงในช่องเลือกตอนออกเอกสาร (โดยเฉพาะบันทึกค่าใช้จ่ายที่มีรายการเดียว) ตอนนี้คลิกช่องรายการแล้วเลือกสินค้าได้ครบทุกเอกสาร' },
+    ],
+  },
+  {
     version: '1.4.1',
     date: '2026-06-12',
     changes: [
