@@ -89,6 +89,47 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
     return <span className="ml-1 text-blue-600">{sortDir === 'desc' ? '↓' : '↑'}</span>
   }
 
+  // คอลัมน์ปรับตามประเภทเอกสารที่เลือก — เมื่อดู "ทั้งหมด" ใช้คอลัมน์กลางๆ เหมือนเดิม
+  const partyLabel =
+    docType === 'EXP' ? 'ผู้ขาย'
+    : docType === 'WT' ? 'ผู้ถูกหัก ณ ที่จ่าย'
+    : docType ? 'ลูกค้า'
+    : 'ชื่อลูกค้า/ชื่อโปรเจ็ค'
+
+  const extraColumn: { label: string; kind: 'dueDate' | 'paymentMethod' | 'category' | 'withholding' } =
+    docType === 'RE' ? { label: 'ช่องทางชำระ', kind: 'paymentMethod' }
+    : docType === 'EXP' ? { label: 'หมวดหมู่', kind: 'category' }
+    : docType === 'WT' ? { label: 'ภาษีหัก ณ ที่จ่าย', kind: 'withholding' }
+    : docType === 'QT' ? { label: 'ยืนราคาถึง', kind: 'dueDate' }
+    : docType === 'BL' ? { label: 'ครบกำหนดชำระ', kind: 'dueDate' }
+    : { label: 'ครบกำหนด', kind: 'dueDate' }
+
+  const amountLabel = docType === 'EXP' ? 'ยอดที่จ่าย' : 'ยอดรวมสุทธิ'
+
+  const partyValue = (snapshot: any, metadata: any) =>
+    (docType === 'EXP' ? (metadata?.sellerName || snapshot?.name) : snapshot?.name) || '—'
+
+  const extraValue = (doc: any, metadata: any): string => {
+    switch (extraColumn.kind) {
+      case 'paymentMethod':
+        return metadata?.paymentMethod || '-'
+      case 'withholding':
+        return formatCurrency(doc.withholdingTax || 0)
+      case 'category': {
+        try {
+          const items = doc.lineItems ? JSON.parse(doc.lineItems) : []
+          const cats = Array.from(new Set(items.map((i: any) => i.category).filter(Boolean)))
+          return cats.length ? cats.join(', ') : '-'
+        } catch {
+          return '-'
+        }
+      }
+      case 'dueDate':
+      default:
+        return doc.dueDate ? formatDateThai(doc.dueDate) : '-'
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -197,11 +238,11 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                     เลขที่เอกสาร <SortIcon field="docNumber" />
                   </Link>
                 </th>
-                <th className="px-4 py-3 text-left font-semibold">ชื่อลูกค้า/ชื่อโปรเจ็ค</th>
-                <th className="px-4 py-3 text-left font-semibold">วันครบกำหนด</th>
+                <th className="px-4 py-3 text-left font-semibold">{partyLabel}</th>
+                <th className={`px-4 py-3 font-semibold ${extraColumn.kind === 'withholding' ? 'text-right' : 'text-left'}`}>{extraColumn.label}</th>
                 <th className="px-4 py-3 text-right font-semibold">
                   <Link href={createSortUrl('amount')} className="group flex items-center justify-end hover:text-gray-700 transition-colors">
-                    ยอดรวมสุทธิ <SortIcon field="amount" />
+                    {amountLabel} <SortIcon field="amount" />
                   </Link>
                 </th>
                 <th className="px-4 py-3 text-left font-semibold">สถานะ</th>
@@ -211,6 +252,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             <tbody className="divide-y divide-gray-100">
               {docs.map(doc => {
                   const snapshot = doc.contactSnapshot ? JSON.parse(doc.contactSnapshot) : null
+                  const metadata = doc.metadata ? JSON.parse(doc.metadata) : {}
                   const editHref = `/documents/${doc.id}/edit`
                   const detailHref = `/documents/${doc.id}`
                   const netTotal = Math.max(doc.totalAmount - (doc.withholdingTax || 0), 0)
@@ -234,12 +276,12 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                       </td>
                       <td className="px-4 py-3">
                         <Link href={editHref} className="block max-w-[260px] truncate font-medium text-gray-900 hover:text-blue-700">
-                          {snapshot?.name || '—'}
+                          {partyValue(snapshot, metadata)}
                         </Link>
                       </td>
-                      <td className="px-4 py-3">
-                        <Link href={editHref} className="block text-gray-700 hover:text-blue-700">
-                          {doc.dueDate ? formatDateThai(doc.dueDate) : '-'}
+                      <td className={`px-4 py-3 ${extraColumn.kind === 'withholding' ? 'text-right font-mono' : ''}`}>
+                        <Link href={editHref} className="block max-w-[220px] truncate text-gray-700 hover:text-blue-700">
+                          {extraValue(doc, metadata)}
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -306,9 +348,11 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         <ul className="md:hidden divide-y divide-gray-100">
           {docs.map(doc => {
             const snapshot = doc.contactSnapshot ? JSON.parse(doc.contactSnapshot) : null
+            const metadata = doc.metadata ? JSON.parse(doc.metadata) : {}
             const detailHref = `/documents/${doc.id}`
             const netTotal = Math.max(doc.totalAmount - (doc.withholdingTax || 0), 0)
             const statusDot = DOC_STATUS_DOT_CLASS[doc.status as DocStatus] || DOC_STATUS_DOT_CLASS.draft
+            const extra = extraValue(doc, metadata)
             return (
               <li key={doc.id} className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-3">
@@ -324,10 +368,10 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                   </div>
                 </div>
                 <Link href={detailHref} className="block">
-                  <div className="truncate text-sm font-medium text-gray-900">{snapshot?.name || '—'}</div>
+                  <div className="truncate text-sm font-medium text-gray-900">{partyValue(snapshot, metadata)}</div>
                   <div className="mt-0.5 text-xs text-gray-400">
                     {formatDateThai(doc.date)}
-                    {doc.dueDate ? ` · ครบกำหนด ${formatDateThai(doc.dueDate)}` : ''}
+                    {extra && extra !== '-' ? ` · ${extraColumn.label} ${extra}` : ''}
                   </div>
                 </Link>
                 <div className="pt-1">

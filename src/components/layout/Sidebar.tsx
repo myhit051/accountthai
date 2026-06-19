@@ -1,11 +1,23 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { signOut } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
 import { CURRENT_VERSION } from '@/lib/version'
 import GlobalSearch from './GlobalSearch'
+
+// เมนูย่อยของ "เอกสาร" — กดเข้าหน้ารายการของแต่ละประเภทได้ในคลิกเดียว
+const docTypeChildren = [
+  { type: '', label: 'ทั้งหมด' },
+  { type: 'INV', label: 'ใบกำกับภาษี' },
+  { type: 'EXP', label: 'ค่าใช้จ่าย' },
+  { type: 'WT', label: 'หัก ณ ที่จ่าย' },
+  { type: 'QT', label: 'ใบเสนอราคา' },
+  { type: 'BL', label: 'ใบแจ้งหนี้' },
+  { type: 'RE', label: 'ใบเสร็จ' },
+]
 
 const navItems = [
   {
@@ -98,11 +110,18 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
     return pathname.startsWith(href)
   }
+
+  // เมนูเอกสารกางอยู่ตลอดเมื่ออยู่ในหน้าเอกสาร + ให้ผู้ใช้กดกาง/พับเองได้ด้วย
+  const docsActive = pathname === '/documents'
+  const currentType = docsActive ? (searchParams.get('type') || '') : null
+  const [docsOpen, setDocsOpen] = useState(false)
+  const docsExpanded = docsOpen || isActive('/documents')
 
   async function handleSignOut() {
     await signOut()
@@ -152,23 +171,78 @@ export default function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-hide">
           <div className="space-y-0.5">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
-                  isActive(item.href)
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                )}
-              >
-                <span className={isActive(item.href) ? 'text-blue-600' : 'text-gray-400'}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              // เมนู "เอกสาร" — แสดงเป็นเมนูแม่ที่กางเมนูย่อยตามประเภทได้
+              if (item.href === '/documents') {
+                const sectionActive = isActive('/documents')
+                return (
+                  <div key={item.href}>
+                    <div
+                      className={cn(
+                        'flex items-center rounded-xl text-sm font-medium transition-all',
+                        sectionActive ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      )}
+                    >
+                      <Link href="/documents" className="flex items-center gap-3 px-3 py-2.5 flex-1 min-w-0">
+                        <span className={sectionActive ? 'text-blue-600' : 'text-gray-400'}>{item.icon}</span>
+                        {item.label}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setDocsOpen((o) => !o)}
+                        aria-label={docsExpanded ? 'พับเมนูเอกสาร' : 'กางเมนูเอกสาร'}
+                        aria-expanded={docsExpanded}
+                        className="px-3 py-2.5 text-gray-400 hover:text-gray-700"
+                      >
+                        <svg
+                          className={cn('transition-transform', docsExpanded && 'rotate-90')}
+                          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        >
+                          <polyline points="9,18 15,12 9,6" />
+                        </svg>
+                      </button>
+                    </div>
+                    {docsExpanded && (
+                      <div className="mt-0.5 ml-5 pl-3 border-l border-gray-200 space-y-0.5">
+                        {docTypeChildren.map((child) => {
+                          const active = currentType !== null && currentType === child.type
+                          return (
+                            <Link
+                              key={child.type || 'all'}
+                              href={child.type ? `/documents?type=${child.type}` : '/documents'}
+                              className={cn(
+                                'block px-3 py-2 rounded-lg text-sm transition-all',
+                                active ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                              )}
+                            >
+                              {child.label}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                    isActive(item.href)
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  )}
+                >
+                  <span className={isActive(item.href) ? 'text-blue-600' : 'text-gray-400'}>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
+              )
+            })}
           </div>
         </nav>
 
