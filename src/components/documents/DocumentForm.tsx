@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Contact, Product, DocType, DOC_TYPE_LABELS } from '@/db/schema'
+import { Contact, Product, BankAccount, DocType, DOC_TYPE_LABELS } from '@/db/schema'
 import ContactSearch from './ContactSearch'
 import ProductSearch from './ProductSearch'
 import { createDocument, updateDocument, LineItem } from '@/actions/documents'
-import { formatCurrency, amountInThaiWords, calculateInclusiveVat } from '@/lib/utils'
+import { formatCurrency, amountInThaiWords, calculateInclusiveVat, calculateVat } from '@/lib/utils'
 import { EXPENSE_CATEGORIES } from '@/lib/expense-categories'
 import { Save, X } from 'lucide-react'
 import Link from 'next/link'
@@ -13,6 +13,7 @@ import Link from 'next/link'
 interface Props {
   contacts: Contact[]
   products?: Product[]
+  bankAccounts?: BankAccount[]
   docType: DocType
   initialData?: any
 }
@@ -85,17 +86,35 @@ function createLineItem(docType: DocType, category = ''): LineItem {
   }
 }
 
-export default function DocumentForm({ contacts, products: initialProducts = [], docType, initialData }: Props) {
+export default function DocumentForm({ contacts, products: initialProducts = [], bankAccounts = [], docType, initialData }: Props) {
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const showProductPicker = PRODUCT_PICKER_DOC_TYPES.includes(docType)
+  // เอกสารใหม่ที่เกี่ยวกับการชำระเงิน → เติมบัญชีเริ่มต้นให้อัตโนมัติ
+  const bankRelevant = docType === 'EXP' || PAYMENT_DOC_TYPES.includes(docType)
+  const defaultBank = !initialData && bankRelevant ? bankAccounts.find(a => a.isDefault) : undefined
   const initialMetadata = initialData?.metadata
     ? { ...getDefaultMetadata(docType), ...JSON.parse(initialData.metadata) }
-    : getDefaultMetadata(docType)
+    : {
+        ...getDefaultMetadata(docType),
+        ...(defaultBank ? { bankName: defaultBank.bankName, bankAccount: defaultBank.accountNumber } : {}),
+      }
+
+  function pickBankAccount(acc: BankAccount) {
+    setMetadata(prev => ({ ...prev, bankName: acc.bankName, bankAccount: acc.accountNumber }))
+  }
   const [selectedContact, setSelectedContact] = useState<Contact | null>(
     initialData?.contactId ? contacts.find(c => c.id === initialData.contactId) || null : null
   )
   const [notes, setNotes] = useState(initialData?.notes || '')
   const [dueDate, setDueDate] = useState(initialData?.dueDate ? new Date(initialData.dueDate * 1000).toISOString().split('T')[0] : '')
+  // vatEnabled = รายการนี้มี VAT 7% หรือไม่  /  includeVat = ราคาที่กรอก "รวม VAT แล้ว" (true) หรือ "ยังไม่รวม ต้องบวกเพิ่ม" (false)
+  const [vatEnabled, setVatEnabled] = useState(
+    initialData
+      ? (initialMetadata.vatEnabled !== undefined
+          ? initialMetadata.vatEnabled === 'true'
+          : initialMetadata.priceIncludesVat === 'true') // เอกสารเก่า: มี VAT ก็ต่อเมื่อราคารวม VAT
+      : VAT_TYPES[docType]
+  )
   const [includeVat, setIncludeVat] = useState(initialData ? initialMetadata.priceIncludesVat === 'true' : VAT_TYPES[docType])
   const [lineItems, setLineItems] = useState<LineItem[]>(
     initialData?.lineItems ? JSON.parse(initialData.lineItems) : [
@@ -116,9 +135,11 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
     subtotal,
     vatAmount,
     totalAmount: baseTotalAmount,
-  } = includeVat
-    ? calculateInclusiveVat(totalAfterDiscount)
-    : { subtotal: totalAfterDiscount, vatAmount: 0, totalAmount: totalAfterDiscount }
+  } = !vatEnabled
+    ? { subtotal: totalAfterDiscount, vatAmount: 0, totalAmount: totalAfterDiscount }
+    : includeVat
+    ? calculateInclusiveVat(totalAfterDiscount) // ราคารวม VAT → ถอด VAT ออกมา
+    : { subtotal: totalAfterDiscount, ...calculateVat(totalAfterDiscount) } // ราคายังไม่รวม → บวก 7% เพิ่ม
 
   const invoiceWithholdingEnabled = PAYMENT_DOC_TYPES.includes(docType) && metadata.withholdingTaxEnabled === 'true'
   const expenseWithholdingTaxAmount = docType === 'EXP' ? roundMoney(parseMoney(metadata.withholdingTaxAmount)) : 0
@@ -214,7 +235,9 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
       : today
     const payloadMetadata = {
       ...metadata,
-      priceIncludesVat: includeVat ? 'true' : 'false',
+      vatEnabled: vatEnabled ? 'true' : 'false',
+      // priceIncludesVat = true เฉพาะตอนมี VAT และราคารวม VAT แล้ว (PDF ใช้ flag นี้จัดบรรทัดสรุป)
+      priceIncludesVat: vatEnabled && includeVat ? 'true' : 'false',
     }
     const payload = {
       docType,
@@ -384,6 +407,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                 onChange={e => setMetadata(prev => ({ ...prev, paymentDate: e.target.value }))}
               />
             </div>
+            <BankAccountPicker accounts={bankAccounts} onPick={pickBankAccount} />
             <div>
               <label className="form-label">ธนาคาร</label>
               <input
@@ -535,6 +559,7 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
                 <option value="บัตรเครดิต">บัตรเครดิต</option>
               </select>
             </div>
+            <BankAccountPicker accounts={bankAccounts} onPick={pickBankAccount} />
             <div>
               <label className="form-label">ธนาคาร / ประเภทบัญชี</label>
               <input
@@ -636,16 +661,30 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700">{isWT ? 'เงินได้ที่จ่าย' : 'รายการสินค้า / บริการ'}</h2>
           {VAT_SUPPORTED_DOC_TYPES.includes(docType) && (
-            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                id="include-vat"
-                checked={includeVat}
-                onChange={(e) => setIncludeVat(e.target.checked)}
-                className="rounded"
-              />
-              ราคาที่กรอกรวม VAT 7%
-            </label>
+            <div className="flex flex-col items-end gap-1.5">
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="vat-enabled"
+                  checked={vatEnabled}
+                  onChange={(e) => setVatEnabled(e.target.checked)}
+                  className="rounded"
+                />
+                มีภาษีมูลค่าเพิ่ม 7%
+              </label>
+              {vatEnabled && (
+                <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="include-vat"
+                    checked={includeVat}
+                    onChange={(e) => setIncludeVat(e.target.checked)}
+                    className="rounded"
+                  />
+                  ราคาที่กรอกรวม VAT แล้ว
+                </label>
+              )}
+            </div>
           )}
         </div>
 
@@ -850,15 +889,15 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
             <span>จำนวนเงินรวมทั้งสิ้น</span>
             <span className="font-mono text-blue-600">{formatCurrency(totalAmount)}</span>
           </div>
-          {includeVat && (
+          {vatEnabled && (
             <div className="space-y-2 border-t border-gray-200 pt-2">
-              <div className="flex justify-between text-gray-500">
-                <span>ภาษีมูลค่าเพิ่ม 7%</span>
-                <span className="font-mono">{formatCurrency(vatAmount)}</span>
-              </div>
               <div className="flex justify-between text-gray-500">
                 <span>ราคาไม่รวมภาษีมูลค่าเพิ่ม</span>
                 <span className="font-mono">{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>ภาษีมูลค่าเพิ่ม 7%</span>
+                <span className="font-mono">{formatCurrency(vatAmount)}</span>
               </div>
             </div>
           )}
@@ -909,5 +948,41 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
         </button>
       </div>
     </form>
+  )
+}
+
+// Dropdown เลือกบัญชีธนาคารที่ตั้งค่าไว้ → เติมช่องธนาคาร/เลขที่บัญชีให้อัตโนมัติ (ยังพิมพ์แก้เองได้)
+function BankAccountPicker({ accounts, onPick }: { accounts: BankAccount[]; onPick: (a: BankAccount) => void }) {
+  if (accounts.length === 0) {
+    return (
+      <div className="sm:col-span-2">
+        <a href="/settings/banks" target="_blank" className="text-xs text-blue-500 hover:underline">
+          + ตั้งค่าบัญชีธนาคารไว้เลือกง่ายๆ
+        </a>
+      </div>
+    )
+  }
+  return (
+    <div className="sm:col-span-2">
+      <label className="form-label">เลือกบัญชีที่บันทึกไว้</label>
+      <select
+        className="form-input"
+        value=""
+        onChange={e => {
+          const acc = accounts.find(a => a.id === e.target.value)
+          if (acc) onPick(acc)
+        }}
+      >
+        <option value="">เลือกบัญชี... (หรือกรอกเอง)</option>
+        {accounts.map(a => (
+          <option key={a.id} value={a.id}>
+            {a.bankName} · {a.accountNumber}{a.accountName ? ` · ${a.accountName}` : ''}
+          </option>
+        ))}
+      </select>
+      <a href="/settings/banks" target="_blank" className="text-xs text-blue-500 hover:underline mt-1 inline-block">
+        จัดการบัญชีธนาคาร
+      </a>
+    </div>
   )
 }

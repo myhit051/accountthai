@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { db } from '@/db'
 import { tenants, driveIntegrations, metaIntegrations } from '@/db/schema'
+import { getBankAccounts } from '@/db/queries/banks'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 
@@ -20,6 +21,7 @@ export default async function SettingsPage() {
     adAccountName: metaIntegrations.adAccountName,
     connectedAt: metaIntegrations.connectedAt,
   }).from(metaIntegrations).where(eq(metaIntegrations.tenantId, tenantId)).limit(1)
+  const banks = await getBankAccounts(tenantId)
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -61,6 +63,30 @@ export default async function SettingsPage() {
             <div className="text-gray-400 text-sm mb-3">ยังไม่ได้ตั้งค่าข้อมูลบริษัท</div>
             <Link href="/settings/company" className="btn-primary btn-sm">ตั้งค่าเลย</Link>
           </div>
+        )}
+      </div>
+
+      {/* Bank Accounts */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800">บัญชีธนาคาร</h2>
+            <p className="text-sm text-gray-400 mt-0.5">ตั้งค่าไว้ครั้งเดียว แล้วเลือกจาก dropdown ตอนออกเอกสาร</p>
+          </div>
+          <Link href="/settings/banks" className="btn-secondary btn-sm">จัดการ</Link>
+        </div>
+        {banks.length > 0 ? (
+          <div className="space-y-1.5">
+            {banks.map(b => (
+              <div key={b.id} className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-gray-800">{b.bankName}</span>
+                <span className="font-mono text-gray-500">{b.accountNumber}</span>
+                {b.isDefault && <span className="badge badge-issued text-xs">ค่าเริ่มต้น</span>}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-sm text-gray-400">ยังไม่ได้ตั้งค่าบัญชีธนาคาร</div>
         )}
       </div>
 

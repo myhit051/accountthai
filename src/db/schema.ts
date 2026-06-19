@@ -103,6 +103,19 @@ export const products = sqliteTable('products', {
   updatedAt: integer('updated_at').default(sql`(unixepoch())`),
 })
 
+// ─── Bank Accounts (ตั้งค่าบัญชีรับ/จ่ายเงินไว้ล่วงหน้า เลือกจาก dropdown ตอนออกเอกสาร) ──
+export const bankAccounts = sqliteTable('bank_accounts', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  bankName: text('bank_name').notNull(), // ธนาคาร / ประเภทบัญชี เช่น กสิกรไทย ออมทรัพย์
+  accountName: text('account_name'), // ชื่อบัญชี (optional — ใช้แสดงใน dropdown)
+  accountNumber: text('account_number').notNull(), // เลขที่บัญชี
+  isDefault: integer('is_default', { mode: 'boolean' }).default(false), // เติมให้อัตโนมัติตอนสร้างเอกสารใหม่
+  deletedAt: integer('deleted_at'),
+  createdAt: integer('created_at').default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at').default(sql`(unixepoch())`),
+})
+
 // ─── Document Running Number Sequences ────────────────────────────────────────
 export const documentSequences = sqliteTable(
   'document_sequences',
@@ -175,6 +188,8 @@ export type Contact = typeof contacts.$inferSelect
 export type NewContact = typeof contacts.$inferInsert
 export type Product = typeof products.$inferSelect
 export type NewProduct = typeof products.$inferInsert
+export type BankAccount = typeof bankAccounts.$inferSelect
+export type NewBankAccount = typeof bankAccounts.$inferInsert
 export type Document = typeof documents.$inferSelect
 export type NewDocument = typeof documents.$inferInsert
 export type DocumentSequence = typeof documentSequences.$inferSelect

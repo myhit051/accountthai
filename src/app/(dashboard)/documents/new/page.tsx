@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { DOC_TYPE_LABELS, DocType } from '@/db/schema'
 import { getContacts } from '@/db/queries/contacts'
 import { getProducts } from '@/db/queries/products'
+import { getBankAccounts } from '@/db/queries/banks'
 import { getDocumentById } from '@/db/queries/documents'
 import DocumentForm from '@/components/documents/DocumentForm'
 import Link from 'next/link'
@@ -59,9 +60,10 @@ export default async function NewDocumentPage({
     )
   }
 
-  const [contacts, products] = await Promise.all([
+  const [contacts, products, bankAccounts] = await Promise.all([
     getContacts(tenantId),
     getProducts(tenantId),
+    getBankAccounts(tenantId),
   ])
 
   // คัดลอกจากเอกสารเดิม: ดึงข้อมูลมาเติมในฟอร์มสร้าง (ไม่มี id/เลขที่/วันที่ → เป็นการสร้างใหม่ รอแก้ไข+บันทึก)
@@ -103,7 +105,7 @@ export default async function NewDocumentPage({
         </div>
       </div>
 
-      <DocumentForm contacts={contacts} products={products} docType={docType} initialData={prefill} />
+      <DocumentForm contacts={contacts} products={products} bankAccounts={bankAccounts} docType={docType} initialData={prefill} />
     </div>
   )
 }
