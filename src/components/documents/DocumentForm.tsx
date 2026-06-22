@@ -581,7 +581,8 @@ export default function DocumentForm({ contacts, products: initialProducts = [],
               />
             </div>
             <div>
-              <label className="form-label">วันที่รับชำระ</label>
+              {/* ใบแจ้งหนี้/ใบเสนอราคายังไม่ได้รับเงิน → ใช้ "วันที่เอกสาร" (ฟิลด์นี้กำหนดวันที่/เดือนของเลขที่เอกสารด้วย) */}
+              <label className="form-label">{docType === 'BL' || docType === 'QT' ? 'วันที่เอกสาร' : 'วันที่รับชำระ'}</label>
               <input
                 type="date"
                 className="form-input"
