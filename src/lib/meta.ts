@@ -64,15 +64,28 @@ export interface MetaAdAccount {
   name: string
   accountId: string
   currency: string
+  accountStatus: number
 }
 
 export async function fetchAdAccounts(token: string): Promise<MetaAdAccount[]> {
   const json = await graphGet(buildUrl('me/adaccounts', token, {
-    fields: 'id,name,account_id,currency',
+    fields: 'id,name,account_id,currency,account_status',
     limit: '100',
   }))
-  const data = (json.data || []) as Array<{ id: string; name: string; account_id: string; currency: string }>
-  return data.map(a => ({ id: a.id, name: a.name, accountId: a.account_id, currency: a.currency }))
+  const data = (json.data || []) as Array<{
+    id: string
+    name: string
+    account_id: string
+    currency: string
+    account_status: number
+  }>
+  return data.map(a => ({
+    id: a.id,
+    name: a.name,
+    accountId: a.account_id,
+    currency: a.currency,
+    accountStatus: a.account_status,
+  }))
 }
 
 export interface BillingCharge {

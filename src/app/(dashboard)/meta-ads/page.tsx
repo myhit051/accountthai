@@ -40,13 +40,16 @@ function monthRange(month: string): { since: string; until: string } {
 export default async function MetaAdsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; account?: string }>
+  searchParams: Promise<{ month?: string; account?: string; accountFilter?: string }>
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect('/login')
 
   const params = await searchParams
   const month = /^\d{4}-\d{2}$/.test(params.month || '') ? params.month! : previousMonth()
+  const accountFilter = ['all', 'active', 'spent'].includes(params.accountFilter || '')
+    ? params.accountFilter!
+    : 'all'
   const { since, until } = monthRange(month)
 
   const integration = await getMetaIntegration(session.user.id)
@@ -67,19 +70,42 @@ export default async function MetaAdsPage({
 
   const currency = integration.currency || 'THB'
   let accounts = [] as Awaited<ReturnType<typeof fetchAdAccounts>>
+  let filteredAccounts = [] as Awaited<ReturnType<typeof fetchAdAccounts>>
   let charges: BillingCharge[] = []
   let daily: DailySpend[] = []
+  let selectedAccount: Awaited<ReturnType<typeof fetchAdAccounts>>[number] | undefined
   let errorCard: 'token' | 'fetch' | null = null
 
   try {
     accounts = await fetchAdAccounts(integration.accessToken)
-    const requestedAccount = accounts.find(account => account.id === params.account)
-    const selectedAccount = requestedAccount || accounts.find(account => account.id === integration.adAccountId) || accounts[0]
-    if (!selectedAccount) throw new Error('No accessible Meta ad account')
-    ;[charges, daily] = await Promise.all([
-      fetchBillingCharges(integration.accessToken, selectedAccount.id, since, until),
-      fetchDailySpend(integration.accessToken, selectedAccount.id, since, until),
-    ])
+    const spendByAccount = new Map<string, DailySpend[]>()
+
+    if (accountFilter === 'active') {
+      filteredAccounts = accounts.filter(account => account.accountStatus === 1)
+    } else if (accountFilter === 'spent') {
+      const spendResults = await Promise.all(accounts.map(async account => {
+        const spend = await fetchDailySpend(integration.accessToken, account.id, since, until)
+        spendByAccount.set(account.id, spend)
+        return { account, total: spend.reduce((sum, day) => sum + day.spend, 0) }
+      }))
+      filteredAccounts = spendResults.filter(result => result.total > 0).map(result => result.account)
+    } else {
+      filteredAccounts = accounts
+    }
+
+    selectedAccount = filteredAccounts.find(account => account.id === params.account)
+      || filteredAccounts.find(account => account.id === integration.adAccountId)
+      || filteredAccounts[0]
+
+    if (selectedAccount) {
+      daily = spendByAccount.get(selectedAccount.id) || await fetchDailySpend(
+        integration.accessToken,
+        selectedAccount.id,
+        since,
+        until
+      )
+      charges = await fetchBillingCharges(integration.accessToken, selectedAccount.id, since, until)
+    }
   } catch (error) {
     errorCard = error instanceof MetaTokenError ? 'token' : 'fetch'
     if (errorCard === 'fetch') console.error('Meta ads page error:', error)
@@ -110,15 +136,12 @@ export default async function MetaAdsPage({
 
   const totalSpend = daily.reduce((s, d) => s + d.spend, 0)
   const totalCharged = charges.reduce((s, c) => s + c.amount, 0)
-  const selectedAccount = accounts.find(account => account.id === params.account)
-    || accounts.find(account => account.id === integration.adAccountId)
-    || accounts[0]
   const selectedCurrency = selectedAccount?.currency || currency
   const receipts = charges
-    .filter(charge => charge.transactionId)
+    .filter(charge => charge.transactionId && selectedAccount)
     .map(charge => ({
       transactionId: charge.transactionId,
-      url: metaReceiptUrl(charge.transactionId, selectedAccount.id),
+      url: metaReceiptUrl(charge.transactionId, selectedAccount!.id),
     }))
 
   return (
@@ -131,15 +154,43 @@ export default async function MetaAdsPage({
       {/* Month and ad account filter */}
       <div className="card p-4">
         <form method="GET" action="/meta-ads" className="flex gap-3 items-center flex-wrap">
+          <input type="hidden" name="accountFilter" value={accountFilter} />
           <label className="text-sm text-gray-500" htmlFor="meta-month">เดือน</label>
           <input id="meta-month" type="month" name="month" defaultValue={month} className="form-input w-44" />
           <label className="text-sm text-gray-500" htmlFor="meta-account">บัญชีโฆษณา</label>
           <select id="meta-account" name="account" defaultValue={selectedAccount?.id} className="form-input min-w-64">
-            {accounts.map(account => (
+            {filteredAccounts.length === 0 && <option value="">ไม่พบบัญชีที่ตรงกับตัวกรอง</option>}
+            {filteredAccounts.map(account => (
               <option key={account.id} value={account.id}>{account.name} ({account.id}) — {account.currency}</option>
             ))}
           </select>
           <button type="submit" className="btn-primary">ดูข้อมูล</button>
+          <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
+            {[
+              { value: 'all', label: `ทั้งหมด (${accounts.length})` },
+              { value: 'active', label: 'Active' },
+              { value: 'spent', label: 'มียอดใช้จ่าย > 0' },
+            ].map(filter => (
+              <Link
+                key={filter.value}
+                href={{
+                  pathname: '/meta-ads',
+                  query: {
+                    month,
+                    accountFilter: filter.value,
+                    ...(selectedAccount?.id ? { account: selectedAccount.id } : {}),
+                  },
+                }}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  accountFilter === filter.value
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {filter.label}
+              </Link>
+            ))}
+          </div>
         </form>
       </div>
 
@@ -216,7 +267,7 @@ export default async function MetaAdsPage({
                   <td>
                     {c.transactionId ? (
                       <a
-                        href={metaReceiptUrl(c.transactionId, selectedAccount.id)}
+                        href={metaReceiptUrl(c.transactionId, selectedAccount!.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline text-sm"
