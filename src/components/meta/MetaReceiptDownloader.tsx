@@ -9,42 +9,30 @@ interface Receipt {
 
 export default function MetaReceiptDownloader({ receipts }: { receipts: Receipt[] }) {
   const [message, setMessage] = useState('')
-  const [downloading, setDownloading] = useState(false)
 
-  async function downloadReceipts() {
-    if (receipts.length === 0 || downloading) return
+  function openReceipts() {
+    if (receipts.length === 0) return
 
-    setDownloading(true)
-    setMessage('กำลังส่งคำขอดาวน์โหลด กรุณาอนุญาตการดาวน์โหลดหลายไฟล์หากเบราว์เซอร์ถาม')
-
-    const frames: HTMLIFrameElement[] = []
-    for (const [index, receipt] of receipts.entries()) {
-      const frame = document.createElement('iframe')
-      frame.hidden = true
-      frame.title = `ดาวน์โหลดใบเสร็จ ${receipt.transactionId}`
-      document.body.appendChild(frame)
-      frames.push(frame)
-      frame.src = receipt.url
-
-      if (index < receipts.length - 1) {
-        await new Promise(resolve => window.setTimeout(resolve, 800))
-      }
+    let opened = 0
+    for (const receipt of receipts) {
+      const tab = window.open(receipt.url, '_blank', 'noopener,noreferrer')
+      if (tab) opened++
     }
 
-    window.setTimeout(() => frames.forEach(frame => frame.remove()), 30_000)
-    setMessage(`ส่งคำขอดาวน์โหลด ${receipts.length} รายการแล้ว หากไม่มีไฟล์ กรุณาตรวจว่าล็อกอิน Facebook และอนุญาตการดาวน์โหลดหลายไฟล์`)
-    setDownloading(false)
+    setMessage(opened === receipts.length
+      ? `เปิดใบเสร็จ ${opened} รายการแล้ว ดาวน์โหลด PDF จากหน้า Meta ได้เลย`
+      : `เปิดได้ ${opened} จาก ${receipts.length} รายการ กรุณาอนุญาตป๊อปอัปสำหรับเว็บไซต์นี้แล้วกดอีกครั้ง`)
   }
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
       <button
         type="button"
-        onClick={downloadReceipts}
-        disabled={receipts.length === 0 || downloading}
+        onClick={openReceipts}
+        disabled={receipts.length === 0}
         className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {downloading ? 'กำลังดาวน์โหลด…' : `ดาวน์โหลดใบเสร็จทั้งหมด (${receipts.length})`}
+        เปิดใบเสร็จทั้งหมด ({receipts.length})
       </button>
       {message && <span className="text-xs text-gray-500">{message}</span>}
     </div>
