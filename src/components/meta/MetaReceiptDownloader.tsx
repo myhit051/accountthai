@@ -9,19 +9,28 @@ interface Receipt {
 
 export default function MetaReceiptDownloader({ receipts }: { receipts: Receipt[] }) {
   const [message, setMessage] = useState('')
+  const [blockedReceipts, setBlockedReceipts] = useState<Receipt[]>([])
 
   function openReceipts() {
     if (receipts.length === 0) return
 
     let opened = 0
+    const blocked: Receipt[] = []
     for (const receipt of receipts) {
-      const tab = window.open(receipt.url, '_blank', 'noopener,noreferrer')
-      if (tab) opened++
+      const tab = window.open('about:blank', '_blank')
+      if (tab) {
+        tab.opener = null
+        tab.location.replace(receipt.url)
+        opened++
+      } else {
+        blocked.push(receipt)
+      }
     }
 
+    setBlockedReceipts(blocked)
     setMessage(opened === receipts.length
       ? `เปิดใบเสร็จ ${opened} รายการแล้ว ดาวน์โหลด PDF จากหน้า Meta ได้เลย`
-      : `เปิดได้ ${opened} จาก ${receipts.length} รายการ กรุณาอนุญาตป๊อปอัปสำหรับเว็บไซต์นี้แล้วกดอีกครั้ง`)
+      : `เบราว์เซอร์เปิดได้ ${opened} จาก ${receipts.length} รายการ กดรายการที่เหลือด้านล่างหรืออนุญาตป๊อปอัปแล้วลองใหม่`)
   }
 
   return (
@@ -35,6 +44,22 @@ export default function MetaReceiptDownloader({ receipts }: { receipts: Receipt[
         เปิดใบเสร็จทั้งหมด ({receipts.length})
       </button>
       {message && <span className="text-xs text-gray-500">{message}</span>}
+      {blockedReceipts.length > 0 && (
+        <div className="basis-full flex items-center gap-2 flex-wrap pt-1">
+          <span className="text-xs text-amber-600">รายการที่ถูกบล็อก:</span>
+          {blockedReceipts.map((receipt, index) => (
+            <a
+              key={receipt.transactionId}
+              href={receipt.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary btn-sm"
+            >
+              ใบเสร็จ {index + 1}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
