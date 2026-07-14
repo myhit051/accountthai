@@ -10,9 +10,11 @@ import {
   MetaTokenError,
   BillingCharge,
   DailySpend,
+  fetchAdAccounts,
 } from '@/lib/meta'
 import { formatDateThai } from '@/lib/utils'
 import MetaSpendChart from '@/components/meta/MetaSpendChart'
+import MetaReceiptDownloader from '@/components/meta/MetaReceiptDownloader'
 
 function formatMoney(amount: number, currency: string) {
   return new Intl.NumberFormat('th-TH', {
@@ -23,23 +25,29 @@ function formatMoney(amount: number, currency: string) {
   }).format(amount)
 }
 
-function toDateInput(d: Date): string {
-  return d.toISOString().slice(0, 10)
+function previousMonth(): string {
+  const now = new Date()
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+function monthRange(month: string): { since: string; until: string } {
+  const [year, monthNumber] = month.split('-').map(Number)
+  const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
+  return { since: `${month}-01`, until: `${month}-${String(lastDay).padStart(2, '0')}` }
 }
 
 export default async function MetaAdsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ since?: string; until?: string }>
+  searchParams: Promise<{ month?: string; account?: string }>
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect('/login')
 
   const params = await searchParams
-  const now = new Date()
-  const defaultSince = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000)
-  const since = /^\d{4}-\d{2}-\d{2}$/.test(params.since || '') ? params.since! : toDateInput(defaultSince)
-  const until = /^\d{4}-\d{2}-\d{2}$/.test(params.until || '') ? params.until! : toDateInput(now)
+  const month = /^\d{4}-\d{2}$/.test(params.month || '') ? params.month! : previousMonth()
+  const { since, until } = monthRange(month)
 
   const integration = await getMetaIntegration(session.user.id)
 
@@ -58,14 +66,19 @@ export default async function MetaAdsPage({
   }
 
   const currency = integration.currency || 'THB'
+  let accounts = [] as Awaited<ReturnType<typeof fetchAdAccounts>>
   let charges: BillingCharge[] = []
   let daily: DailySpend[] = []
   let errorCard: 'token' | 'fetch' | null = null
 
   try {
+    accounts = await fetchAdAccounts(integration.accessToken)
+    const requestedAccount = accounts.find(account => account.id === params.account)
+    const selectedAccount = requestedAccount || accounts.find(account => account.id === integration.adAccountId) || accounts[0]
+    if (!selectedAccount) throw new Error('No accessible Meta ad account')
     ;[charges, daily] = await Promise.all([
-      fetchBillingCharges(integration.accessToken, integration.adAccountId, since, until),
-      fetchDailySpend(integration.accessToken, integration.adAccountId, since, until),
+      fetchBillingCharges(integration.accessToken, selectedAccount.id, since, until),
+      fetchDailySpend(integration.accessToken, selectedAccount.id, since, until),
     ])
   } catch (error) {
     errorCard = error instanceof MetaTokenError ? 'token' : 'fetch'
@@ -97,6 +110,13 @@ export default async function MetaAdsPage({
 
   const totalSpend = daily.reduce((s, d) => s + d.spend, 0)
   const totalCharged = charges.reduce((s, c) => s + c.amount, 0)
+  const selectedAccount = accounts.find(account => account.id === params.account)
+    || accounts.find(account => account.id === integration.adAccountId)
+    || accounts[0]
+  const selectedCurrency = selectedAccount?.currency || currency
+  const receipts = charges
+    .filter(charge => charge.transactionId)
+    .map(charge => ({ transactionId: charge.transactionId, url: metaReceiptUrl(charge.transactionId) }))
 
   return (
     <div className="space-y-6">
@@ -105,13 +125,17 @@ export default async function MetaAdsPage({
         <Link href="/settings/meta" className="btn-secondary btn-sm">⚙️ ตั้งค่าการเชื่อมต่อ</Link>
       </div>
 
-      {/* Date range filter */}
+      {/* Month and ad account filter */}
       <div className="card p-4">
         <form method="GET" action="/meta-ads" className="flex gap-3 items-center flex-wrap">
-          <label className="text-sm text-gray-500">ตั้งแต่</label>
-          <input type="date" name="since" defaultValue={since} className="form-input w-40" />
-          <label className="text-sm text-gray-500">ถึง</label>
-          <input type="date" name="until" defaultValue={until} className="form-input w-40" />
+          <label className="text-sm text-gray-500" htmlFor="meta-month">เดือน</label>
+          <input id="meta-month" type="month" name="month" defaultValue={month} className="form-input w-44" />
+          <label className="text-sm text-gray-500" htmlFor="meta-account">บัญชีโฆษณา</label>
+          <select id="meta-account" name="account" defaultValue={selectedAccount?.id} className="form-input min-w-64">
+            {accounts.map(account => (
+              <option key={account.id} value={account.id}>{account.name} ({account.id}) — {account.currency}</option>
+            ))}
+          </select>
           <button type="submit" className="btn-primary">ดูข้อมูล</button>
         </form>
       </div>
@@ -119,9 +143,9 @@ export default async function MetaAdsPage({
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'ค่าใช้จ่ายรวม (Insights)', value: formatMoney(totalSpend, currency), color: 'text-blue-600', bg: 'bg-blue-50', icon: '📊' },
-          { label: 'ยอดเรียกเก็บรวม (Billing)', value: formatMoney(totalCharged, currency), color: 'text-orange-600', bg: 'bg-orange-50', icon: '🧾' },
-          { label: 'บัญชีโฆษณา', value: integration.adAccountName || integration.adAccountId, color: 'text-gray-800', bg: 'bg-gray-50', icon: '📣' },
+          { label: 'ค่าใช้จ่ายรวม (Insights)', value: formatMoney(totalSpend, selectedCurrency), color: 'text-blue-600', bg: 'bg-blue-50', icon: '📊' },
+          { label: 'ยอดเรียกเก็บรวม (Billing)', value: formatMoney(totalCharged, selectedCurrency), color: 'text-orange-600', bg: 'bg-orange-50', icon: '🧾' },
+          { label: 'บัญชีโฆษณา', value: selectedAccount?.name || selectedAccount?.id || '—', color: 'text-gray-800', bg: 'bg-gray-50', icon: '📣' },
         ].map((c, i) => (
           <div key={i} className="metric-card">
             <div className={`w-9 h-9 ${c.bg} rounded-xl flex items-center justify-center text-lg`}>{c.icon}</div>
@@ -148,7 +172,7 @@ export default async function MetaAdsPage({
                 {[...daily].reverse().map(d => (
                   <tr key={d.date}>
                     <td className="text-sm">{formatDateThai(new Date(d.date))}</td>
-                    <td className="text-right font-mono text-sm">{formatMoney(d.spend, currency)}</td>
+                    <td className="text-right font-mono text-sm">{formatMoney(d.spend, selectedCurrency)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -162,6 +186,9 @@ export default async function MetaAdsPage({
         <div className="px-5 py-4 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-gray-700">รายการเรียกเก็บเงิน (Billing)</h2>
           <p className="text-xs text-gray-400 mt-0.5">ทุกครั้งที่ Meta ตัดเงิน — กด &quot;เปิดใบเสร็จ&quot; เพื่อดู/ดาวน์โหลดใบเสร็จจริงจาก Facebook</p>
+          <div className="mt-3">
+            <MetaReceiptDownloader receipts={receipts} />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">
