@@ -65,11 +65,12 @@ export interface MetaAdAccount {
   accountId: string
   currency: string
   accountStatus: number
+  timezoneName: string
 }
 
 export async function fetchAdAccounts(token: string): Promise<MetaAdAccount[]> {
   const json = await graphGet(buildUrl('me/adaccounts', token, {
-    fields: 'id,name,account_id,currency,account_status',
+    fields: 'id,name,account_id,currency,account_status,timezone_name',
     limit: '100',
   }))
   const data = (json.data || []) as Array<{
@@ -78,6 +79,7 @@ export async function fetchAdAccounts(token: string): Promise<MetaAdAccount[]> {
     account_id: string
     currency: string
     account_status: number
+    timezone_name: string
   }>
   return data.map(a => ({
     id: a.id,
@@ -85,6 +87,7 @@ export async function fetchAdAccounts(token: string): Promise<MetaAdAccount[]> {
     accountId: a.account_id,
     currency: a.currency,
     accountStatus: a.account_status,
+    timezoneName: a.timezone_name || 'UTC',
   }))
 }
 
@@ -95,17 +98,32 @@ export interface BillingCharge {
   transactionId: string
 }
 
+function dateInTimeZone(value: string, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(value))
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(item => item.type === type)?.value || ''
+  return `${part('year')}-${part('month')}-${part('day')}`
+}
+
 export async function fetchBillingCharges(
   token: string,
   actId: string,
   since: string, // YYYY-MM-DD
-  until: string
+  until: string,
+  timeZone = 'UTC'
 ): Promise<BillingCharge[]> {
   const charges: BillingCharge[] = []
+  const exclusiveUntil = new Date(`${until}T00:00:00Z`)
+  exclusiveUntil.setUTCDate(exclusiveUntil.getUTCDate() + 1)
+  const requestUntil = exclusiveUntil.toISOString().slice(0, 10)
   let url: string | null = buildUrl(`${actId}/activities`, token, {
     fields: 'event_time,event_type,extra_data',
     since,
-    until,
+    until: requestUntil,
     limit: '500',
   })
 
@@ -116,6 +134,9 @@ export async function fetchBillingCharges(
     for (const event of data) {
       if (event.event_type !== 'ad_account_billing_charge' || !event.extra_data) continue
       try {
+        const localDate = dateInTimeZone(event.event_time, timeZone)
+        if (localDate < since || localDate > until) continue
+
         const extra = JSON.parse(event.extra_data) as { currency?: string; new_value?: number; transaction_id?: string }
         charges.push({
           date: event.event_time,

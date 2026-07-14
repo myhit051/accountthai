@@ -25,6 +25,15 @@ function formatMoney(amount: number, currency: string) {
   }).format(amount)
 }
 
+function formatMetaBillingDate(date: string, timeZone: string) {
+  return new Date(date).toLocaleDateString('th-TH', {
+    timeZone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
 function previousMonth(): string {
   const now = new Date()
   const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
@@ -104,7 +113,13 @@ export default async function MetaAdsPage({
         since,
         until
       )
-      charges = await fetchBillingCharges(integration.accessToken, selectedAccount.id, since, until)
+      charges = await fetchBillingCharges(
+        integration.accessToken,
+        selectedAccount.id,
+        since,
+        until,
+        selectedAccount.timezoneName
+      )
     }
   } catch (error) {
     errorCard = error instanceof MetaTokenError ? 'token' : 'fetch'
@@ -261,7 +276,7 @@ export default async function MetaAdsPage({
                 </tr>
               ) : charges.map((c, i) => (
                 <tr key={`${c.transactionId}-${i}`}>
-                  <td className="text-sm">{formatDateThai(new Date(c.date))}</td>
+                  <td className="text-sm">{formatMetaBillingDate(c.date, selectedAccount?.timezoneName || 'UTC')}</td>
                   <td className="text-right font-mono text-sm font-semibold">{formatMoney(c.amount, c.currency || currency)}</td>
                   <td className="font-mono text-xs text-gray-500">{c.transactionId || '—'}</td>
                   <td>
