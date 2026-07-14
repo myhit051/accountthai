@@ -21,6 +21,9 @@ export default function MetaReceiptDownloader({ receipts }: { receipts: Receipt[
       if (tab) {
         tab.opener = null
         tab.location.replace(receipt.url)
+        window.setTimeout(() => {
+          if (!tab.closed) tab.close()
+        }, 15_000)
         opened++
       } else {
         blocked.push(receipt)
@@ -29,7 +32,7 @@ export default function MetaReceiptDownloader({ receipts }: { receipts: Receipt[
 
     setBlockedReceipts(blocked)
     setMessage(opened === receipts.length
-      ? `เปิดใบเสร็จ ${opened} รายการแล้ว ดาวน์โหลด PDF จากหน้า Meta ได้เลย`
+      ? `เปิดใบเสร็จ ${opened} รายการแล้ว แท็บจะปิดอัตโนมัติภายใน 15 วินาที`
       : `เบราว์เซอร์เปิดได้ ${opened} จาก ${receipts.length} รายการ กดรายการที่เหลือด้านล่างหรืออนุญาตป๊อปอัปแล้วลองใหม่`)
   }
 
