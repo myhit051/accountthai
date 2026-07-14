@@ -116,7 +116,10 @@ export default async function MetaAdsPage({
   const selectedCurrency = selectedAccount?.currency || currency
   const receipts = charges
     .filter(charge => charge.transactionId)
-    .map(charge => ({ transactionId: charge.transactionId, url: metaReceiptUrl(charge.transactionId) }))
+    .map(charge => ({
+      transactionId: charge.transactionId,
+      url: metaReceiptUrl(charge.transactionId, selectedAccount.id),
+    }))
 
   return (
     <div className="space-y-6">
@@ -213,7 +216,7 @@ export default async function MetaAdsPage({
                   <td>
                     {c.transactionId ? (
                       <a
-                        href={metaReceiptUrl(c.transactionId)}
+                        href={metaReceiptUrl(c.transactionId, selectedAccount.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline text-sm"

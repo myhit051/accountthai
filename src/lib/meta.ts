@@ -145,6 +145,13 @@ export async function fetchDailySpend(
     .sort((a, b) => a.date.localeCompare(b.date))
 }
 
-export function metaReceiptUrl(transactionId: string): string {
-  return `https://www.facebook.com/ads/receipt/?transaction_id=${encodeURIComponent(transactionId)}`
+export function metaReceiptUrl(transactionId: string, actId: string): string {
+  const url = new URL('https://business.facebook.com/ads/manage/billing_transaction/')
+  url.searchParams.set('act', actId.replace(/^act_/, ''))
+  url.searchParams.set('pdf', 'true')
+  url.searchParams.set('print', 'false')
+  url.searchParams.set('source', 'billing_summary')
+  url.searchParams.set('tx_type', '3')
+  url.searchParams.set('txid', transactionId)
+  return url.toString()
 }
